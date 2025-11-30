@@ -36,6 +36,7 @@ BEGIN_MESSAGE_MAP(CMy1126View, CFormView)
 	ON_WM_LBUTTONDOWN()
 	ON_NOTIFY(NM_CLICK, IDC_LIST2, &CMy1126View::OnClickList2)
 	ON_BN_CLICKED(IDC_BUTTON4, &CMy1126View::OnBnClickedButton4)
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 // CMy1126View 생성/소멸
@@ -45,6 +46,12 @@ CMy1126View::CMy1126View() noexcept
 {
 	// TODO: 여기에 생성 코드를 추가합니다.
 
+	// ★★★ [추가] 미리보기 점수 배열 초기화 ★★★
+	for (int i = 0; i < 15; i++)
+	{
+		m_nPreviewScores[i] = -1;  // -1은 "표시 안 함"
+		m_bCanScore[i] = FALSE;
+	}
 }
 
 CMy1126View::~CMy1126View()
@@ -61,6 +68,9 @@ BOOL CMy1126View::PreCreateWindow(CREATESTRUCT& cs)
 {
 	// TODO: CREATESTRUCT cs를 수정하여 여기에서
 	//  Window 클래스 또는 스타일을 수정합니다.
+
+	// ★★★ [추가] 전체 윈도우에 더블 버퍼링 적용 (깜빡임 제거) ★★★
+	cs.dwExStyle |= WS_EX_COMPOSITED;
 
 	return CFormView::PreCreateWindow(cs);
 }
@@ -104,7 +114,7 @@ void CMy1126View::OnInitialUpdate()
 	m_nGameMode = pApp->m_nGameMode;
 
 	// 2. 리스트 스타일 설정
-	mlist.SetExtendedStyle(LVS_EX_FULLROWSELECT);
+	mlist.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
 	// 3. 리스트 크기 및 컬럼 설정
 	CRect rect;
@@ -172,19 +182,43 @@ void CMy1126View::OnInitialUpdate()
 	m_nCurrentPlayer = 0;
 
 	// ---------------------------------------------------------
-	// 이미지 로드 (안전하게 로드)
+	// 이미지 로드 (PNG 파일에서 상대 경로로 로드) 
 	// ---------------------------------------------------------
-	CString strPath;
+	
+	// 실행 파일 경로 얻기
+	TCHAR szExePath[MAX_PATH];
+	GetModuleFileName(NULL, szExePath, MAX_PATH);
+	
+	// 파일명 제거하고 폴더 경로만 남기기
+	CString strExePath(szExePath);
+	int nPos = strExePath.ReverseFind(_T('\\'));
+	if (nPos != -1)
+		strExePath = strExePath.Left(nPos);
+
+	CString strResPath;
+	strResPath.Format(_T("%s\\res\\"), (LPCTSTR)strExePath);
+	
+	// 주사위 이미지 로드 (PNG 파일)
 	for (int i = 1; i <= 6; i++) {
 		if (m_image[i].IsNull()) {
-			strPath.Format(_T("C:\\dice%d.png"), i);
-			m_image[i].Load(strPath);
+			CString strFile;
+			strFile.Format(_T("%sdice%d.png"), (LPCTSTR)strResPath, i);
+			HRESULT hr = m_image[i].Load(strFile);
+			if (FAILED(hr)) {
+				AfxMessageBox(_T("주사위 이미지 로드 실패: ") + strFile);
+			}
 		}
 	}
 
+	// 배경 이미지 로드 (PNG 파일)
 	if (m_imgBg.IsNull())
 	{
-		m_imgBg.Load(_T("C:\\나무 배경.jpg"));
+		CString strBgFile;
+		strBgFile.Format(_T("%sBackGround.png"), (LPCTSTR)strResPath);
+		HRESULT hr = m_imgBg.Load(strBgFile);
+		if (FAILED(hr)) {
+			AfxMessageBox(_T("배경 이미지 로드 실패: ") + strBgFile);
+		}
 	}
 	// ---------------------------------------------------------
 
@@ -288,7 +322,24 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 			// 현재 플레이어가 0(나)이면 1번 컬럼, 1(상대)이면 2번 컬럼 강조
 			if (nCol == m_nCurrentPlayer + 1)
 			{
-				pLVCD->clrTextBk = RGB(255, 250, 205); // 레몬 쉬폰색 (살짝 밝음)
+				// ★★★ [추가] 점수를 얻을 수 있는 족보는 연두색 하이라이트! ★★★
+				if (m_bCanScore[nRow] == TRUE && 
+					m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE)
+				{
+					pLVCD->clrTextBk = RGB(144, 238, 144); // 연두색 (Light Green)
+				}
+				// ★★★ [추가] 0점이지만 선택 가능한 칸은 연한 노란색 ★★★
+				else if (m_nPreviewScores[nRow] == 0 && 
+						 m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE &&
+						 m_bRolled == TRUE)
+				{
+					pLVCD->clrTextBk = RGB(255, 255, 200); // 연한 노란색
+				}
+				// 기본 현재 플레이어 컨럼 색상
+				else
+				{
+					pLVCD->clrTextBk = RGB(255, 250, 205); // 레몬 쉬폰색
+				}
 			}
 			else
 			{
@@ -364,6 +415,52 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 		}
 
 		pDC->SelectObject(pOldPen);
+
+		// ★★★ [추가] 미리보기 점수 표시 ★★★
+		// 조건: 주사위를 굴렸고, 아직 확정 안 된 칸이고, 미리보기 점수가 있을 때
+		if (m_bRolled && 
+			nRow != 6 && nRow != 7 &&
+			m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE &&
+			m_nPreviewScores[nRow] >= 0)
+		{
+			// 현재 플레이어의 컨럼 영역 계산
+			int nCol = m_nCurrentPlayer + 1;
+			CRect rectSubItem;
+			mlist.GetSubItemRect(nRow, nCol, LVIR_BOUNDS, rectSubItem);
+
+			// 미리보기 점수 문자열
+			CString strPreview;
+			strPreview.Format(_T("%d"), m_nPreviewScores[nRow]);
+
+			// 폰트 설정 (이탤릭체로 미리보기임을 표시)
+			CFont fontPreview;
+			fontPreview.CreateFont(
+				16, 0, 0, 0,
+				FW_BOLD,    // 굵게
+				TRUE,       // 이탤릭
+				FALSE, FALSE, DEFAULT_CHARSET,
+				OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS,
+				_T("맑은 고딕"));
+
+			CFont* pOldFont = pDC->SelectObject(&fontPreview);
+
+			// 배경 투명
+			pDC->SetBkMode(TRANSPARENT);
+
+			// 점수가 0보다 크면 진한 초록색, 0이면 회색
+			if (m_nPreviewScores[nRow] > 0)
+				pDC->SetTextColor(RGB(0, 100, 0));   // 진한 초록색
+			else
+				pDC->SetTextColor(RGB(150, 150, 150)); // 회색
+
+			// 중앙 정렬로 텍스트 출력
+			pDC->DrawText(strPreview, &rectSubItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+			pDC->SelectObject(pOldFont);
+			fontPreview.DeleteObject();
+		}
+
 		*pResult = CDRF_DODEFAULT;
 	}
 	break;
@@ -550,6 +647,9 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 					}
 					// Keep(bRolling == FALSE)이었던 애들은 건드리지 않음 -> 값 유지됨
 				}
+
+				// ★★★ [추가] 애니메이션 끝나면 미리보기 점수 업데이트! ★★★
+				UpdateScorePreview();
 			}
 		}
 
@@ -557,6 +657,7 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 		DrawGame();
 	}
 
+	// ★★★ [핵심 수정] 타이머 2: 깜빡임 방지를 위해 텍스트 영역만 무효화 ★★★
 	if (nIDEvent == 2)
 	{
 		// 시간이 남아있으면 1초씩 뺌
@@ -572,8 +673,16 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 				// OnBnClickedButton3(); // 강제로 굴리거나 등등
 			}
 
-			// 화면 갱신 (숫자가 바뀌는 걸 보여줘야 함)
-			Invalidate(FALSE);
+			// ★★★ [핵심 수정] 전체 화면 대신 텍스트 영역만 무효화 ★★★
+			// 이렇게 하면 리스트뷰와 버튼이 깜빡이지 않습니다!
+
+			CRect rectClient;
+			GetClientRect(&rectClient);
+
+			// 상단 텍스트 영역만 무효화 (플레이어 표시 + 타이머)
+			// y=0 ~ y=60 정도의 상단 영역만 다시 그림
+			CRect rectTextArea(0, 0, rectClient.right, 60);
+			InvalidateRect(&rectTextArea, FALSE);
 		}
 	}
 
@@ -583,103 +692,118 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 void CMy1126View::OnDraw(CDC* pDC)
 {
 	CMy1126Doc* pDoc = GetDocument();
-    ASSERT_VALID(pDoc);
-    if (!pDoc) return;
+	ASSERT_VALID(pDoc);
+	if (!pDoc) return;
 
-    // 1. 클라이언트 영역 구하기
-    CRect rectClient;
-    GetClientRect(&rectClient);
+	// 1. 클라이언트 영역 구하기
+	CRect rectClient;
+	GetClientRect(&rectClient);
 
-    // 2. 픽처 컨트롤(게임판) 영역 제외하고 배경 그리기 (기존 코드 유지)
-    CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
-    CRect rectGameScreen;
-    if (pGameScreen) {
-        pGameScreen->GetWindowRect(&rectGameScreen);
-        ScreenToClient(&rectGameScreen);
-    }
+	// ★★★ [추가] 더블 버퍼링 시작 ★★★
+	CDC memDC;
+	CBitmap memBitmap;
+	memDC.CreateCompatibleDC(pDC);
+	memBitmap.CreateCompatibleBitmap(pDC, rectClient.Width(), rectClient.Height());
+	CBitmap* pOldBitmap = memDC.SelectObject(&memBitmap);
 
-    if (!m_imgBg.IsNull()) {
-        if (pGameScreen) pDC->ExcludeClipRect(&rectGameScreen);
-        m_imgBg.Draw(pDC->GetSafeHdc(), rectClient);
-        pDC->SelectClipRgn(NULL);
-    }
-    
-    // =========================================================
-    // ★★★ [수정] 텍스트 그리기 (위치 변경 & 타이머 추가) ★★★
-    // =========================================================
+	// 2. 픽처 컨트롤(게임판) 영역 제외하고 배경 그리기 (기존 코드 유지)
+	CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+	CRect rectGameScreen;
+	if (pGameScreen) {
+		pGameScreen->GetWindowRect(&rectGameScreen);
+		ScreenToClient(&rectGameScreen);
+	}
 
-    // 폰트 설정 (기존에 만든 굵은 폰트가 있다면 그걸 써도 됩니다)
-    CFont font;
-    font.CreatePointFont(200, _T("Arial Bold")); // 크기 200
-    CFont* pOldFont = pDC->SelectObject(&font);
-    pDC->SetBkMode(TRANSPARENT); // 배경 투명
+	if (!m_imgBg.IsNull()) {
+		if (pGameScreen) memDC.ExcludeClipRect(&rectGameScreen);
+		m_imgBg.Draw(memDC.GetSafeHdc(), rectClient);
+		memDC.SelectClipRgn(NULL);
+	}
 
-    // ---------------------------------------------------------
-    // [1] 왼쪽 리스트 컨트롤 위에 "현재 플레이어" 표시
-    // ---------------------------------------------------------
-    CString strTurn;
-    COLORREF clrText;
+	// =========================================================
+	// ★★★ [수정] 텍스트 그리기 (위치 변경 & 타이머 추가) ★★★
+	// =========================================================
 
-    if (m_nGameMode == 1) // 1인용
-    {
-        strTurn = _T("Single Player Mode");
-        clrText = RGB(255, 255, 255); // 흰색
-    }
-    else // 2인용
-    {
-        if (m_nCurrentPlayer == 0) {
-            strTurn = _T("<<< Player 1 (나) <<<");
-            clrText = RGB(255, 215, 0); // 금색
-        }
-        else {
-            strTurn = _T(">>> Player 2 (상대) >>>");
-            clrText = RGB(100, 100, 255); // 파란색
-        }
-    }
+	// 폰트 설정 (기존에 만든 굵은 폰트가 있다면 그걸 써도 됩니다)
+	CFont font;
+	font.CreatePointFont(200, _T("Arial Bold")); // 크기 200
+	CFont* pOldFont = memDC.SelectObject(&font);
+	memDC.SetBkMode(TRANSPARENT); // 배경 투명
 
-    // ★ 위치: 왼쪽(x=20), 위쪽(y=10) -> 리스트 컨트롤 윗부분
-    pDC->SetTextColor(RGB(0, 0, 0)); // 그림자(검정)
-    pDC->TextOut(22, 12, strTurn); 
-    pDC->SetTextColor(clrText);      // 본문 색상
-    pDC->TextOut(20, 10, strTurn);
+	// ---------------------------------------------------------
+	// [1] 왼쪽 리스트 컨트롤 위에 "현재 플레이어" 표시
+	// ---------------------------------------------------------
+	CString strTurn;
+	COLORREF clrText;
 
-    
-    // ---------------------------------------------------------
-    // [2] 화면 중앙(주사위 위)에 "남은 시간" 표시
-    // ---------------------------------------------------------
-    
-    // 시간 문자열 만들기
-    CString strTimer;
-    strTimer.Format(_T("Time: %d"), m_nLeftTime);
+	if (m_nGameMode == 1) // 1인용
+	{
+		strTurn = _T("Single Player Mode");
+		clrText = RGB(255, 255, 255); // 흰색
+	}
+	else // 2인용
+	{
+		if (m_nCurrentPlayer == 0) {
+			strTurn = _T("<<< Player 1 (나) <<<");
+			clrText = RGB(255, 215, 0); // 금색
+		}
+		else {
+			strTurn = _T(">>> Player 2 (상대) >>>");
+			clrText = RGB(100, 100, 255); // 파란색
+		}
+	}
 
-    // 색상: 시간이 10초 이하로 남으면 빨간색으로 경고!
-    COLORREF clrTimer = RGB(255, 255, 255); // 기본 흰색
-    if (m_nLeftTime <= 10) clrTimer = RGB(255, 0, 0); // 빨간색
+	// ★ 위치: 왼쪽(x=20), 위쪽(y=10) -> 리스트 컨트롤 윗부분
+	memDC.SetTextColor(RGB(0, 0, 0)); // 그림자(검정)
+	memDC.TextOut(22, 12, strTurn);
+	memDC.SetTextColor(clrText);      // 본문 색상
+	memDC.TextOut(20, 10, strTurn);
 
-    // ★ 위치: 화면 가로 중앙 계산
-    // 텍스트의 정중앙을 맞추기 위해 정렬 옵션 변경
-    pDC->SetTextAlign(TA_CENTER); 
-    
-    int nCenterX = rectClient.Width() / 2 + 100; // 살짝 오른쪽 보정 (리스트 컨트롤 때문)
-    if (pGameScreen) nCenterX = rectGameScreen.CenterPoint().x; // 게임판이 있으면 그 중앙
 
-    // 출력 (그림자 효과 포함)
-    pDC->SetTextColor(RGB(0, 0, 0)); 
-    pDC->TextOut(nCenterX + 2, 22, strTimer);
-    
-    pDC->SetTextColor(clrTimer);
-    pDC->TextOut(nCenterX, 20, strTimer);
+	// ---------------------------------------------------------
+	// [2] 화면 중앙(주사위 위)에 "남은 시간" 표시
+	// ---------------------------------------------------------
 
-    // 정렬 원상복구 (중요)
-    pDC->SetTextAlign(TA_LEFT);
+	// 시간 문자열 만들기
+	CString strTimer;
+	strTimer.Format(_T("Time: %d"), m_nLeftTime);
 
-    // ---------------------------------------------------------
+	// 색상: 시간이 10초 이하로 남으면 빨간색으로 경고!
+	COLORREF clrTimer = RGB(255, 255, 255); // 기본 흰색
+	if (m_nLeftTime <= 10) clrTimer = RGB(255, 0, 0); // 빨간색
 
-    pDC->SelectObject(pOldFont);
-    font.DeleteObject();
+	// ★ 위치: 화면 가로 중앙 계산
+	int nCenterX = rectClient.Width() / 2 + 100; // 살짝 오른쪽 보정 (리스트 컨트롤 때문)
+	if (pGameScreen) nCenterX = rectGameScreen.CenterPoint().x; // 게임판이 있으면 그 중앙
 
-    // 마지막으로 게임판(주사위) 그리기
-    DrawGame();
+	// 텍스트의 정중앙을 맞추기 위해 정렬 옵션 변경
+	memDC.SetTextAlign(TA_CENTER);
+
+	// 출력 (그림자 효과 포함)
+	memDC.SetTextColor(RGB(0, 0, 0));
+	memDC.TextOut(nCenterX + 2, 22, strTimer);
+
+	memDC.SetTextColor(clrTimer);
+	memDC.TextOut(nCenterX, 20, strTimer);
+
+	// 정렬 원상복구 (중요)
+	memDC.SetTextAlign(TA_LEFT);
+
+	// ---------------------------------------------------------
+
+	memDC.SelectObject(pOldFont);
+	font.DeleteObject();
+
+	// ★★★ [추가] 더블 버퍼링 완료: 메모리 DC를 화면에 복사 ★★★
+	pDC->BitBlt(0, 0, rectClient.Width(), rectClient.Height(), &memDC, 0, 0, SRCCOPY);
+
+	// 메모리 정리
+	memDC.SelectObject(pOldBitmap);
+	memBitmap.DeleteObject();
+	memDC.DeleteDC();
+
+	// 마지막으로 게임판(주사위) 그리기
+	DrawGame();
 }
 
 void CMy1126View::OnBnClickedButton3()
@@ -728,53 +852,54 @@ void CMy1126View::OnBnClickedButton3()
 
 void CMy1126View::OnLButtonDown(UINT nFlags, CPoint point)
 {
+	// ★★★ [추가] 주사위 클릭 체크 (Keep 토글) ★★★
+
+	// 1. 픽처 컨트롤 영역 구하기
 	CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
-	if (pGameScreen != nullptr)
+	if (pGameScreen)
 	{
-		CRect rectScreen;
-		pGameScreen->GetWindowRect(&rectScreen); // 모니터 기준 절대 좌표
-		ScreenToClient(&rectScreen);             // 내 프로그램 기준 좌표로 변환
+		CRect rectGame;
+		pGameScreen->GetWindowRect(&rectGame);
+		ScreenToClient(&rectGame);
 
-		// 2. 클릭한 곳이 게임 화면 안쪽인가?
-		if (rectScreen.PtInRect(point))
+		// 2. 클릭 좌표가 게임판 안에 있는지 확인
+		if (rectGame.PtInRect(point))
 		{
-			// 3. 클릭 좌표를 '픽처 컨트롤 내부 기준(0,0)'으로 변환
-			int clickX = point.x - rectScreen.left;
-			int clickY = point.y - rectScreen.top;
+			// 3. 게임판 내부 좌표로 변환
+			int localX = point.x - rectGame.left;
+			int localY = point.y - rectGame.top;
 
-			// 4. 주사위 위치 계산 (DrawGame과 똑같은 로직 사용)
-			int CX = rectScreen.Width() / 2;
-			int CY = rectScreen.Height() / 2;
+			int CX = rectGame.Width() / 2;
+			int CY = rectGame.Height() / 2;
+
 			int nDiceSize = 90;
 			int nGapX = 110;
 
-			// 주사위 5개의 중심 좌표를 미리 계산
-			CPoint centers[5];
-			centers[0] = CPoint(CX - nGapX, CY - 55);
-			centers[1] = CPoint(CX, CY - 55);
-			centers[2] = CPoint(CX + nGapX, CY - 55);
-			centers[3] = CPoint(CX - 55, CY + 55);
-			centers[4] = CPoint(CX + 55, CY + 55);
-
-			// 5. 어떤 주사위를 눌렀는지 확인
+			// 4. 각 주사위 위치와 비교
 			for (int i = 0; i < 5; i++)
 			{
-				// 주사위 영역(사각형) 만들기: 중심점에서 -45 ~ +45
+				int targetX = 0, targetY = 0;
+
+				if (i == 0) { targetX = CX - nGapX; targetY = CY - 55; }
+				if (i == 1) { targetX = CX;         targetY = CY - 55; }
+				if (i == 2) { targetX = CX + nGapX; targetY = CY - 55; }
+				if (i == 3) { targetX = CX - 55;    targetY = CY + 55; }
+				if (i == 4) { targetX = CX + 55;    targetY = CY + 55; }
+
+				// 주사위 영역 계산
 				CRect rectDice(
-					centers[i].x - nDiceSize / 2, centers[i].y - nDiceSize / 2,
-					centers[i].x + nDiceSize / 2, centers[i].y + nDiceSize / 2
+					targetX - nDiceSize / 2,
+					targetY - nDiceSize / 2,
+					targetX + nDiceSize / 2,
+					targetY + nDiceSize / 2
 				);
 
-				// 클릭한 좌표가 이 주사위 안에 있는가?
-				if (rectDice.PtInRect(CPoint(clickX, clickY)))
+				// 5. 클릭했으면 Keep 상태 토글
+				if (rectDice.PtInRect(CPoint(localX, localY)))
 				{
-					// ★ 킵 상태 토글 (켜기/끄기)
-					if (!m_bIsAnimating) // 굴러가는 중에는 클릭 금지
-					{
-						m_dices[i].bKeep = !m_dices[i].bKeep;
-						DrawGame(); // 화면 갱신해서 빨간 테두리 보여주기
-					}
-					break; // 찾았으면 반복문 종료
+					m_dices[i].bKeep = !m_dices[i].bKeep;
+					DrawGame(); // 화면 갱신
+					break;
 				}
 			}
 		}
@@ -812,11 +937,18 @@ void CMy1126View::NextTurn()
 		// ★★★ [핵심 수정] 합계(6)랑 보너스(7)는 지우지 마! ★★★
 		if (i == 6 || i == 7) continue;
 
-		// 확정 안 된 나머지 칸들만 빈칸으로 만듦
-		if (m_bScoreFixed[i] == FALSE)
+		// 확정 안 된 나머지 칸들만 빈칸으로 만듦 (현재 플레이어 기준)
+		if (m_bScoreFixed[m_nCurrentPlayer][i] == FALSE)
 		{
-			mlist.SetItemText(i, 1, _T(""));
+			mlist.SetItemText(i, m_nCurrentPlayer + 1, _T(""));
 		}
+	}
+
+	// ★★★ [추가] 미리보기 점수 초기화 ★★★
+	for (int i = 0; i < 15; i++)
+	{
+		m_nPreviewScores[i] = -1;
+		m_bCanScore[i] = FALSE;
 	}
 
 	m_nLeftTime = 40;
@@ -886,7 +1018,7 @@ int CMy1126View::GetScore(int nRow)
 	case 12: // Large Straight (5개 연속) -> 점수 40점
 		// 가능한 경우의 수: 12345, 23456
 		if (counts[1] && counts[2] && counts[3] && counts[4] && counts[5]) return 40;
-		if (counts[2] && counts[3] && counts[4] && counts[5] && counts[6]) return 40;
+		if (counts[2] && counts[3] && counts[4] && counts[5] && counts[6]) return 40; 
 		return 0;
 
 	case 13: // Yacht (5개 모두 같음) -> 점수 50점
@@ -1105,4 +1237,58 @@ void CMy1126View::OnBnClickedButton4()
 		// (선택 창에서 취소하면 갈 곳이 없으니까요)
 		PostQuitMessage(0);
 	}
+}
+
+// ★★★ [추가] 배경 지우기 방지 (깜빡임 제거) ★★★
+BOOL CMy1126View::OnEraseBkgnd(CDC* pDC)
+{
+	// 배경을 지우지 않음 (OnDraw에서 모두 그리므로)
+	// 이렇게 하면 깜빡임이 사라집니다
+	return TRUE;
+}
+
+// ★★★ [추가] 점수 미리보기 업데이트 함수 ★★★
+void CMy1126View::UpdateScorePreview()
+{
+	// 아직 주사위를 안 굴렸으면 미리보기 안 함
+	if (m_bRolled == FALSE)
+	{
+		for (int i = 0; i < 15; i++)
+		{
+			m_nPreviewScores[i] = -1;  // -1은 "표시 안 함"
+			m_bCanScore[i] = FALSE;
+		}
+		mlist.Invalidate(FALSE);
+		return;
+	}
+
+	// 각 족보별 점수 계산
+	for (int i = 0; i < 15; i++)
+	{
+		// 합계(6), 보너스(7)는 건너뛰
+		if (i == 6 || i == 7)
+		{
+			m_nPreviewScores[i] = -1;
+			m_bCanScore[i] = FALSE;
+			continue;
+		}
+
+		// 이미 확정된 칸은 미리보기 안 함
+		if (m_bScoreFixed[m_nCurrentPlayer][i] == TRUE)
+		{
+			m_nPreviewScores[i] = -1;
+			m_bCanScore[i] = FALSE;
+			continue;
+		}
+
+		// 점수 계산
+		int nScore = GetScore(i);
+		m_nPreviewScores[i] = nScore;
+		
+		// 0점 초과면 하이라이트 대상
+		m_bCanScore[i] = (nScore > 0) ? TRUE : FALSE;
+	}
+
+	// 리스트 컨트롤 다시 그리기
+	mlist.Invalidate(FALSE);
 }
