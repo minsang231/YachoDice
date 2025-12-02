@@ -5,12 +5,13 @@
 #pragma once
 
 struct DiceInfo {
-	int x, y;       // 위치
-	float angle;    // 회전 각도
-	int value;      // 주사위 눈 (1~6)
-	bool bRolling;  // 지금 구르는 중인가? (나중에 'Keep' 기능 구현 때 필요)
-
-	bool bKeep;
+	float x, y;       // 위치 (float로 변경 - 부드러운 움직임)
+	float vx, vy;     // 속도 (velocity)
+	float angle;      // 회전 각도
+	float angleSpeed; // 회전 속도
+	int value;        // 주사위 눈 (1~6)
+	bool bRolling;    // 지금 구르는 중인가?
+	bool bKeep;       // 주사위 고정 여부
 };
 
 class CMy1126View : public CFormView

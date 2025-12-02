@@ -21,23 +21,22 @@
 #define new DEBUG_NEW
 #endif
 
-
 // CMy1126View
 
 IMPLEMENT_DYNCREATE(CMy1126View, CFormView)
 
 BEGIN_MESSAGE_MAP(CMy1126View, CFormView)
-	// 표준 인쇄 명령입니다.
-	ON_COMMAND(ID_FILE_PRINT, &CFormView::OnFilePrint)
-	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CFormView::OnFilePrint)
-	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CFormView::OnFilePrintPreview)
-	ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST2, &CMy1126View::OnNMCustomdrawList2)
-	ON_WM_TIMER()
-	ON_BN_CLICKED(IDC_BUTTON3, &CMy1126View::OnBnClickedButton3)
-	ON_WM_LBUTTONDOWN()
-	ON_NOTIFY(NM_CLICK, IDC_LIST2, &CMy1126View::OnClickList2)
-	ON_BN_CLICKED(IDC_BUTTON4, &CMy1126View::OnBnClickedButton4)
-	ON_WM_ERASEBKGND()
+// 표준 인쇄 명령입니다.
+ON_COMMAND(ID_FILE_PRINT, &CFormView::OnFilePrint)
+ON_COMMAND(ID_FILE_PRINT_DIRECT, &CFormView::OnFilePrint)
+ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CFormView::OnFilePrintPreview)
+ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST2, &CMy1126View::OnNMCustomdrawList2)
+ON_WM_TIMER()
+ON_BN_CLICKED(IDC_BUTTON3, &CMy1126View::OnBnClickedButton3)
+ON_WM_LBUTTONDOWN()
+ON_NOTIFY(NM_CLICK, IDC_LIST2, &CMy1126View::OnClickList2)
+ON_BN_CLICKED(IDC_BUTTON4, &CMy1126View::OnBnClickedButton4)
+ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 // CMy1126View 생성/소멸
@@ -50,7 +49,7 @@ CMy1126View::CMy1126View() noexcept
 	// ★★★ [추가] 미리보기 점수 배열 초기화 ★★★
 	for (int i = 0; i < 15; i++)
 	{
-		m_nPreviewScores[i] = -1;  // -1은 "표시 안 함"
+		m_nPreviewScores[i] = -1; // -1은 "표시 안 함"
 		m_bCanScore[i] = FALSE;
 	}
 }
@@ -59,13 +58,13 @@ CMy1126View::~CMy1126View()
 {
 }
 
-void CMy1126View::DoDataExchange(CDataExchange* pDX)
+void CMy1126View::DoDataExchange(CDataExchange *pDX)
 {
 	CFormView::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LIST2, mlist);
 }
 
-BOOL CMy1126View::PreCreateWindow(CREATESTRUCT& cs)
+BOOL CMy1126View::PreCreateWindow(CREATESTRUCT &cs)
 {
 	// TODO: CREATESTRUCT cs를 수정하여 여기에서
 	//  Window 클래스 또는 스타일을 수정합니다.
@@ -101,17 +100,18 @@ void CMy1126View::OnInitialUpdate()
 	}
 
 	// 버튼 3 (굴리기)에 폰트 적용
-	CWnd* pBtn3 = GetDlgItem(IDC_BUTTON3);
-	if (pBtn3) pBtn3->SetFont(&m_fontButton);
+	CWnd *pBtn3 = GetDlgItem(IDC_BUTTON3);
+	if (pBtn3)
+		pBtn3->SetFont(&m_fontButton);
 
 	// 버튼 4 (나가기)에 폰트 적용
-	CWnd* pBtn4 = GetDlgItem(IDC_BUTTON4);
-	if (pBtn4) pBtn4->SetFont(&m_fontButton);
+	CWnd *pBtn4 = GetDlgItem(IDC_BUTTON4);
+	if (pBtn4)
+		pBtn4->SetFont(&m_fontButton);
 	// =========================================================
 
-
 	// 1. 게임 모드 가져오기
-	CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+	CMy1126App *pApp = (CMy1126App *)AfxGetApp();
 	m_nGameMode = pApp->m_nGameMode;
 
 	// 2. 리스트 스타일 설정
@@ -125,16 +125,19 @@ void CMy1126View::OnInitialUpdate()
 
 	// 헤더 높이 계산
 	int nHeaderHeight = 0;
-	if (mlist.GetHeaderCtrl()) {
+	if (mlist.GetHeaderCtrl())
+	{
 		CRect rectHeader;
 		mlist.GetHeaderCtrl()->GetClientRect(&rectHeader);
 		nHeaderHeight = rectHeader.Height();
 	}
-	if (nHeaderHeight <= 0) nHeaderHeight = 25;
+	if (nHeaderHeight <= 0)
+		nHeaderHeight = 25;
 
 	// 행 높이 설정 (전체 높이에서 헤더 빼고 15등분)
 	int nRowHeight = (nTotalHeight - nHeaderHeight - 5) / 15;
-	if (nRowHeight < 15) nRowHeight = 15;
+	if (nRowHeight < 15)
+		nRowHeight = 15;
 
 	m_ListHeightAdjust.DeleteImageList();
 	m_ListHeightAdjust.Create(1, nRowHeight, ILC_COLOR, 1, 1);
@@ -172,24 +175,27 @@ void CMy1126View::OnInitialUpdate()
 
 	// 아이템 초기화
 	mlist.DeleteAllItems();
-	CString strItems[] = { _T("원 (Ones)"), _T("투 (Twos)"), _T("쓰리 (Threes)"), _T("포 (Fours)"), _T("파이브 (Fives)"), _T("식스 (Sixes)"), _T("합계 (Sum)"), _T("보너스 (Bonus)"), _T("세 개 같은 수"), _T("네 개 같은 수"), _T("풀 하우스"), _T("작은 스트레이트"), _T("큰 스트레이트"), _T("요트"), _T("찬스") };
-	for (int i = 0; i < 15; i++) mlist.InsertItem(i, strItems[i]);
+	CString strItems[] = {_T("원 (Ones)"), _T("투 (Twos)"), _T("쓰리 (Threes)"), _T("포 (Fours)"), _T("파이브 (Fives)"), _T("식스 (Sixes)"), _T("합계 (Sum)"), _T("보너스 (Bonus)"), _T("세 개 같은 수"), _T("네 개 같은 수"), _T("풀 하우스"), _T("작은 스트레이트"), _T("큰 스트레이트"), _T("요트"), _T("찬스")};
+	for (int i = 0; i < 15; i++)
+		mlist.InsertItem(i, strItems[i]);
 
 	// 변수 초기화
-	for (int p = 0; p < 2; p++) {
-		for (int i = 0; i < 15; i++) m_bScoreFixed[p][i] = FALSE;
+	for (int p = 0; p < 2; p++)
+	{
+		for (int i = 0; i < 15; i++)
+			m_bScoreFixed[p][i] = FALSE;
 		m_bYachtFixed[p] = FALSE;
 	}
 	m_nCurrentPlayer = 0;
 
 	// ---------------------------------------------------------
-	// 이미지 로드 (PNG 파일에서 상대 경로로 로드) 
+	// 이미지 로드 (PNG 파일에서 상대 경로로 로드)
 	// ---------------------------------------------------------
-	
+
 	// 실행 파일 경로 얻기
 	TCHAR szExePath[MAX_PATH];
 	GetModuleFileName(NULL, szExePath, MAX_PATH);
-	
+
 	// 파일명 제거하고 폴더 경로만 남기기
 	CString strExePath(szExePath);
 	int nPos = strExePath.ReverseFind(_T('\\'));
@@ -198,14 +204,17 @@ void CMy1126View::OnInitialUpdate()
 
 	CString strResPath;
 	strResPath.Format(_T("%s\\res\\"), (LPCTSTR)strExePath);
-	
+
 	// 주사위 이미지 로드 (PNG 파일)
-	for (int i = 1; i <= 6; i++) {
-		if (m_image[i].IsNull()) {
+	for (int i = 1; i <= 6; i++)
+	{
+		if (m_image[i].IsNull())
+		{
 			CString strFile;
 			strFile.Format(_T("%sdice%d.png"), (LPCTSTR)strResPath, i);
 			HRESULT hr = m_image[i].Load(strFile);
-			if (FAILED(hr)) {
+			if (FAILED(hr))
+			{
 				AfxMessageBox(_T("주사위 이미지 로드 실패: ") + strFile);
 			}
 		}
@@ -217,7 +226,8 @@ void CMy1126View::OnInitialUpdate()
 		CString strBgFile;
 		strBgFile.Format(_T("%sBackGround.png"), (LPCTSTR)strResPath);
 		HRESULT hr = m_imgBg.Load(strBgFile);
-		if (FAILED(hr)) {
+		if (FAILED(hr))
+		{
 			AfxMessageBox(_T("배경 이미지 로드 실패: ") + strBgFile);
 		}
 	}
@@ -226,11 +236,15 @@ void CMy1126View::OnInitialUpdate()
 	// 주사위 및 애니메이션 상태 초기화
 	m_bIsAnimating = FALSE;
 	m_nAniFrame = 0;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 5; i++)
+	{
 		m_dices[i].x = 0;
 		m_dices[i].y = 0;
+		m_dices[i].vx = 0;
+		m_dices[i].vy = 0;
 		m_dices[i].value = 1;
 		m_dices[i].angle = 0;
+		m_dices[i].angleSpeed = 0;
 		m_dices[i].bRolling = FALSE;
 		m_dices[i].bKeep = FALSE;
 	}
@@ -242,30 +256,28 @@ void CMy1126View::OnInitialUpdate()
 	SetTimer(2, 1000, NULL);
 }
 
-
 // CMy1126View 인쇄
 
-BOOL CMy1126View::OnPreparePrinting(CPrintInfo* pInfo)
+BOOL CMy1126View::OnPreparePrinting(CPrintInfo *pInfo)
 {
 	// 기본적인 준비
 	return DoPreparePrinting(pInfo);
 }
 
-void CMy1126View::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+void CMy1126View::OnBeginPrinting(CDC * /*pDC*/, CPrintInfo * /*pInfo*/)
 {
 	// TODO: 인쇄하기 전에 추가 초기화 작업을 추가합니다.
 }
 
-void CMy1126View::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+void CMy1126View::OnEndPrinting(CDC * /*pDC*/, CPrintInfo * /*pInfo*/)
 {
 	// TODO: 인쇄 후 정리 작업을 추가합니다.
 }
 
-void CMy1126View::OnPrint(CDC* pDC, CPrintInfo* /*pInfo*/)
+void CMy1126View::OnPrint(CDC *pDC, CPrintInfo * /*pInfo*/)
 {
 	// TODO: 여기에 사용자 지정 인쇄 코드를 추가합니다.
 }
-
 
 // CMy1126View 진단
 
@@ -275,24 +287,23 @@ void CMy1126View::AssertValid() const
 	CFormView::AssertValid();
 }
 
-void CMy1126View::Dump(CDumpContext& dc) const
+void CMy1126View::Dump(CDumpContext &dc) const
 {
 	CFormView::Dump(dc);
 }
 
-CMy1126Doc* CMy1126View::GetDocument() const // 디버그되지 않은 버전은 인라인으로 지정됩니다.
+CMy1126Doc *CMy1126View::GetDocument() const // 디버그되지 않은 버전은 인라인으로 지정됩니다.
 {
 	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CMy1126Doc)));
-	return (CMy1126Doc*)m_pDocument;
+	return (CMy1126Doc *)m_pDocument;
 }
 #endif //_DEBUG
 
-
 // CMy1126View 메시지 처리기
 
-void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
+void CMy1126View::OnNMCustomdrawList2(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	NMLVCUSTOMDRAW* pLVCD = reinterpret_cast<NMLVCUSTOMDRAW*>(pNMHDR);
+	NMLVCUSTOMDRAW *pLVCD = reinterpret_cast<NMLVCUSTOMDRAW *>(pNMHDR);
 	*pResult = CDRF_DODEFAULT;
 
 	switch (pLVCD->nmcd.dwDrawStage)
@@ -319,18 +330,18 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 		else
 		{
 			// ★★★ [추가] 현재 턴인 플레이어의 줄을 살짝 밝게 표시 ★★★
-			// 항목(0)은 그대로, 
+			// 항목(0)은 그대로,
 			// 현재 플레이어가 0(나)이면 1번 컬럼, 1(상대)이면 2번 컬럼 강조
 			if (nCol == m_nCurrentPlayer + 1)
 			{
 				// ★★★ [추가] 점수를 얻을 수 있는 족보는 연두색 하이라이트! ★★★
-				if (m_bCanScore[nRow] == TRUE && 
+				if (m_bCanScore[nRow] == TRUE &&
 					m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE)
 				{
 					pLVCD->clrTextBk = RGB(144, 238, 144); // 연두색 (Light Green)
 				}
 				// ★★★ [추가] 0점이지만 선택 가능한 칸은 연한 노란색 ★★★
-				else if (m_nPreviewScores[nRow] == 0 && 
+				else if (m_nPreviewScores[nRow] == 0 &&
 						 m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE &&
 						 m_bRolled == TRUE)
 				{
@@ -355,7 +366,8 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 		}
 		else
 		{
-			if (nCol == 0) pLVCD->clrText = RGB(0, 0, 0);
+			if (nCol == 0)
+				pLVCD->clrText = RGB(0, 0, 0);
 			else if (nCol == 1)
 				pLVCD->clrText = m_bScoreFixed[0][nRow] ? RGB(0, 0, 0) : RGB(160, 160, 160);
 			else if (nCol == 2)
@@ -369,7 +381,7 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 	// ★★★ [수정] 좌표 누적 방식으로 선 긋기 (완벽한 격자) ★★★
 	case CDDS_ITEMPOSTPAINT:
 	{
-		CDC* pDC = CDC::FromHandle(pLVCD->nmcd.hdc);
+		CDC *pDC = CDC::FromHandle(pLVCD->nmcd.hdc);
 		int nRow = (int)pLVCD->nmcd.dwItemSpec;
 
 		// 현재 행의 전체 영역을 가져옴
@@ -378,14 +390,14 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 
 		// 검은색 펜 준비
 		CPen penGrid(PS_SOLID, 1, RGB(0, 0, 0));
-		CPen* pOldPen = pDC->SelectObject(&penGrid);
+		CPen *pOldPen = pDC->SelectObject(&penGrid);
 
 		// 1. 바닥 가로선 긋기
 		pDC->MoveTo(rectItem.left, rectItem.bottom - 1);
 		pDC->LineTo(rectItem.right, rectItem.bottom - 1);
 
 		// 2. 세로선 긋기 (컬럼 너비를 더해가며 위치 계산)
-		CHeaderCtrl* pHeader = mlist.GetHeaderCtrl();
+		CHeaderCtrl *pHeader = mlist.GetHeaderCtrl();
 		int nColCount = pHeader->GetItemCount();
 
 		// 시작 위치 (맨 왼쪽)
@@ -419,7 +431,7 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 
 		// ★★★ [추가] 미리보기 점수 표시 ★★★
 		// 조건: 주사위를 굴렸고, 아직 확정 안 된 칸이고, 미리보기 점수가 있을 때
-		if (m_bRolled && 
+		if (m_bRolled &&
 			nRow != 6 && nRow != 7 &&
 			m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE &&
 			m_nPreviewScores[nRow] >= 0)
@@ -437,21 +449,21 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 			CFont fontPreview;
 			fontPreview.CreateFont(
 				16, 0, 0, 0,
-				FW_BOLD,    // 굵게
-				TRUE,       // 이탤릭
+				FW_BOLD, // 굵게
+				TRUE,	 // 이탤릭
 				FALSE, FALSE, DEFAULT_CHARSET,
 				OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 				DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS,
 				_T("맑은 고딕"));
 
-			CFont* pOldFont = pDC->SelectObject(&fontPreview);
+			CFont *pOldFont = pDC->SelectObject(&fontPreview);
 
 			// 배경 투명
 			pDC->SetBkMode(TRANSPARENT);
 
 			// 점수가 0보다 크면 진한 초록색, 0이면 회색
 			if (m_nPreviewScores[nRow] > 0)
-				pDC->SetTextColor(RGB(0, 100, 0));   // 진한 초록색
+				pDC->SetTextColor(RGB(0, 100, 0)); // 진한 초록색
 			else
 				pDC->SetTextColor(RGB(150, 150, 150)); // 회색
 
@@ -471,8 +483,9 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 void CMy1126View::DrawGame()
 {
 	// 1. 그릴 대상(픽처 컨트롤) 찾기
-	CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
-	if (pGameScreen == nullptr) return;
+	CWnd *pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+	if (pGameScreen == nullptr)
+		return;
 
 	// 2. 픽처 컨트롤 크기
 	CClientDC dc(pGameScreen);
@@ -520,13 +533,15 @@ void CMy1126View::DrawGame()
 		int srcH = (int)(rect.Height() * ratioY);
 
 		// ★ 안전장치: 계산된 너비가 이미지 범위를 넘지 않게 보정
-		if (srcX + srcW > m_imgBg.GetWidth()) srcW = m_imgBg.GetWidth() - srcX;
-		if (srcY + srcH > m_imgBg.GetHeight()) srcH = m_imgBg.GetHeight() - srcY;
+		if (srcX + srcW > m_imgBg.GetWidth())
+			srcW = m_imgBg.GetWidth() - srcX;
+		if (srcY + srcH > m_imgBg.GetHeight())
+			srcH = m_imgBg.GetHeight() - srcY;
 
 		// 5. 그리기
 		m_imgBg.Draw(memDC.m_hDC,
-			0, 0, rect.Width(), rect.Height(),  // 목적지 (픽처 컨트롤 전체)
-			srcX, srcY, srcW, srcH);            // 원본 (계산된 위치)
+					 0, 0, rect.Width(), rect.Height(), // 목적지 (픽처 컨트롤 전체)
+					 srcX, srcY, srcW, srcH);			// 원본 (계산된 위치)
 	}
 
 	// ==========================================================
@@ -536,8 +551,8 @@ void CMy1126View::DrawGame()
 	CBrush brushFelt(RGB(34, 100, 34));
 	CPen penBorder(PS_SOLID, 15, RGB(139, 69, 19));
 
-	CPen* pOldPen = memDC.SelectObject(&penBorder);
-	CBrush* pOldBrush = (CBrush*)memDC.SelectObject(&brushFelt);
+	CPen *pOldPen = memDC.SelectObject(&penBorder);
+	CBrush *pOldBrush = (CBrush *)memDC.SelectObject(&brushFelt);
 
 	// 둥근 모서리 사각형
 	memDC.RoundRect(rect.left + 10, rect.top + 10, rect.right - 10, rect.bottom - 10, 60, 60);
@@ -545,31 +560,54 @@ void CMy1126View::DrawGame()
 	memDC.SelectObject(pOldPen);
 	memDC.SelectObject(pOldBrush);
 
-
 	// ==========================================================
 	// [로직] 주사위 그리기 (기존 코드 유지)
 	// ==========================================================
 
 	SetGraphicsMode(memDC.m_hDC, GM_ADVANCED);
 
-	int nDiceSize = 90;
-	int nGapX = 110;
+	int nDiceSize = 60;  // 90 -> 60으로 축소
+	int nGapX = 80;      // 간격도 축소
 
 	for (int i = 0; i < 5; i++)
 	{
 		int targetX = 0;
 		int targetY = 0;
 
-		if (i == 0) { targetX = CX - nGapX; targetY = CY - 55; }
-		if (i == 1) { targetX = CX;         targetY = CY - 55; }
-		if (i == 2) { targetX = CX + nGapX; targetY = CY - 55; }
-		if (i == 3) { targetX = CX - 55;    targetY = CY + 55; }
-		if (i == 4) { targetX = CX + 55;    targetY = CY + 55; }
-
+		// 물리 애니메이션 중이면 계산된 위치 사용
 		if (m_bIsAnimating && m_dices[i].bRolling)
 		{
-			targetX += (rand() % 20 - 10);
-			targetY += (rand() % 20 - 10);
+			targetX = (int)m_dices[i].x;
+			targetY = (int)m_dices[i].y;
+		}
+		else
+		{
+			// 정지 상태일 때 고정 위치
+			if (i == 0)
+			{
+				targetX = CX - nGapX;
+				targetY = CY - 55;
+			}
+			if (i == 1)
+			{
+				targetX = CX;
+				targetY = CY - 55;
+			}
+			if (i == 2)
+			{
+				targetX = CX + nGapX;
+				targetY = CY - 55;
+			}
+			if (i == 3)
+			{
+				targetX = CX - 55;
+				targetY = CY + 55;
+			}
+			if (i == 4)
+			{
+				targetX = CX + 55;
+				targetY = CY + 55;
+			}
 		}
 
 		int nVal = m_dices[i].value;
@@ -583,8 +621,10 @@ void CMy1126View::DrawGame()
 			float fSin = sin(radian);
 
 			XFORM xForm;
-			xForm.eM11 = fCos; xForm.eM12 = fSin;
-			xForm.eM21 = -fSin; xForm.eM22 = fCos;
+			xForm.eM11 = fCos;
+			xForm.eM12 = fSin;
+			xForm.eM21 = -fSin;
+			xForm.eM22 = fCos;
 			xForm.eDx = (float)targetX;
 			xForm.eDy = (float)targetY;
 
@@ -596,8 +636,8 @@ void CMy1126View::DrawGame()
 			if (m_dices[i].bKeep)
 			{
 				CPen penKeep(PS_SOLID, 5, RGB(255, 255, 0));
-				CPen* pKeepOldPen = memDC.SelectObject(&penKeep);
-				CBrush* pKeepOldBrush = (CBrush*)memDC.SelectStockObject(NULL_BRUSH);
+				CPen *pKeepOldPen = memDC.SelectObject(&penKeep);
+				CBrush *pKeepOldBrush = (CBrush *)memDC.SelectStockObject(NULL_BRUSH);
 
 				memDC.Rectangle(-nDiceSize / 2, -nDiceSize / 2, nDiceSize / 2, nDiceSize / 2);
 
@@ -621,40 +661,139 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 		{
 			m_nAniFrame--;
 
-			// 2. 굴러가는 주사위만 각도 돌리기 (좌표 건드리지 않음!)
-			for (int i = 0; i < 5; i++)
+			// 2. 픽처 컨트롤 크기 구하기
+			CWnd *pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+			if (pGameScreen)
 			{
-				if (m_dices[i].bRolling)
-				{
-					m_dices[i].angle += (rand() % 40 + 20); // 뱅글뱅글
+				CRect rect;
+				pGameScreen->GetClientRect(&rect);
+				int nDiceSize = 60;
+				float friction = 0.98f;  // 마찰력 (속도 감쇠)
+				float restitution = 0.7f;  // 반발 계수 (튕김 정도)
 
-					m_dices[i].value = (rand() % 6) + 1;
+				// 3. 물리 시뮬레이션
+				for (int i = 0; i < 5; i++)
+				{
+					if (m_dices[i].bRolling)
+					{
+						// 위치 업데이트
+						m_dices[i].x += m_dices[i].vx;
+						m_dices[i].y += m_dices[i].vy;
+
+						// 마찰력 적용 (속도 감소)
+						m_dices[i].vx *= friction;
+						m_dices[i].vy *= friction;
+
+						// 회전 업데이트
+						m_dices[i].angle += m_dices[i].angleSpeed;
+						m_dices[i].angleSpeed *= friction;
+
+						// 주사위 눈금 무작위 변경 (굴리는 효과)
+						if (m_nAniFrame > 10)  // 마지막 10프레임은 값 고정
+							m_dices[i].value = (rand() % 6) + 1;
+
+						// 벽 충돌 감지 (픽처 컨트롤 경계)
+						float halfSize = nDiceSize / 2.0f;
+
+						// 왼쪽 벽
+						if (m_dices[i].x - halfSize < rect.left + 10)
+						{
+							m_dices[i].x = rect.left + 10 + halfSize;
+							m_dices[i].vx = -m_dices[i].vx * restitution;
+						}
+						// 오른쪽 벽
+						if (m_dices[i].x + halfSize > rect.right - 10)
+						{
+							m_dices[i].x = rect.right - 10 - halfSize;
+							m_dices[i].vx = -m_dices[i].vx * restitution;
+						}
+						// 위쪽 벽
+						if (m_dices[i].y - halfSize < rect.top + 10)
+						{
+							m_dices[i].y = rect.top + 10 + halfSize;
+							m_dices[i].vy = -m_dices[i].vy * restitution;
+						}
+						// 아래쪽 벽
+						if (m_dices[i].y + halfSize > rect.bottom - 10)
+						{
+							m_dices[i].y = rect.bottom - 10 - halfSize;
+							m_dices[i].vy = -m_dices[i].vy * restitution;
+						}
+					}
+				}
+
+				// 4. 주사위 간 충돌 감지
+				for (int i = 0; i < 5; i++)
+				{
+					if (!m_dices[i].bRolling) continue;
+
+					for (int j = i + 1; j < 5; j++)
+					{
+						if (!m_dices[j].bRolling) continue;
+
+						// 두 주사위 간 거리 계산
+						float dx = m_dices[j].x - m_dices[i].x;
+						float dy = m_dices[j].y - m_dices[i].y;
+						float distance = sqrt(dx * dx + dy * dy);
+						float minDist = (float)nDiceSize;  // 충돌 거리
+
+						// 충돌 발생!
+						if (distance < minDist && distance > 0)
+						{
+							// 충돌 법선 벡터
+							float nx = dx / distance;
+							float ny = dy / distance;
+
+							// 겹침 해소 (주사위 분리)
+							float overlap = minDist - distance;
+							m_dices[i].x -= nx * overlap * 0.5f;
+							m_dices[i].y -= ny * overlap * 0.5f;
+							m_dices[j].x += nx * overlap * 0.5f;
+							m_dices[j].y += ny * overlap * 0.5f;
+
+							// 속도 교환 (탄성 충돌)
+							float vix = m_dices[i].vx;
+							float viy = m_dices[i].vy;
+							float vjx = m_dices[j].vx;
+							float vjy = m_dices[j].vy;
+
+							// 법선 방향 속도 성분
+							float vi_n = vix * nx + viy * ny;
+							float vj_n = vjx * nx + vjy * ny;
+
+							// 속도 교환 (반발 계수 적용)
+							m_dices[i].vx += (vj_n - vi_n) * nx * restitution;
+							m_dices[i].vy += (vj_n - vi_n) * ny * restitution;
+							m_dices[j].vx += (vi_n - vj_n) * nx * restitution;
+							m_dices[j].vy += (vi_n - vj_n) * ny * restitution;
+						}
+					}
 				}
 			}
 
-			// 3. 시간 종료 체크
+			// 5. 시간 종료 체크
 			if (m_nAniFrame <= 0)
 			{
 				m_bIsAnimating = FALSE;
 
 				for (int i = 0; i < 5; i++)
 				{
-					// ★★★ [수정] 굴러가던 주사위만 최종 값을 확정해야 함! ★★★
 					if (m_dices[i].bRolling)
 					{
-						m_dices[i].bRolling = FALSE; // 이제 멈춤
-						m_dices[i].value = (rand() % 6) + 1; // 최종 눈금
-						m_dices[i].angle = 0; // 각도 정렬
+						m_dices[i].bRolling = FALSE;  // 이제 멈춤
+						m_dices[i].angle = 0;  // 각도 정렬
+						m_dices[i].vx = 0;
+						m_dices[i].vy = 0;
+						m_dices[i].angleSpeed = 0;
 					}
-					// Keep(bRolling == FALSE)이었던 애들은 건드리지 않음 -> 값 유지됨
 				}
 
-				// ★★★ [추가] 애니메이션 끝나면 미리보기 점수 업데이트! ★★★
+				// 미리보기 점수 업데이트
 				UpdateScorePreview();
 			}
 		}
 
-		// 4. 화면 갱신 요청 (DrawGame 호출)
+		// 6. 화면 갱신 요청 (DrawGame 호출)
 		DrawGame();
 	}
 
@@ -690,11 +829,12 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 	CFormView::OnTimer(nIDEvent);
 }
 
-void CMy1126View::OnDraw(CDC* pDC)
+void CMy1126View::OnDraw(CDC *pDC)
 {
-	CMy1126Doc* pDoc = GetDocument();
+	CMy1126Doc *pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
-	if (!pDoc) return;
+	if (!pDoc)
+		return;
 
 	// 1. 클라이언트 영역 구하기
 	CRect rectClient;
@@ -705,18 +845,21 @@ void CMy1126View::OnDraw(CDC* pDC)
 	CBitmap memBitmap;
 	memDC.CreateCompatibleDC(pDC);
 	memBitmap.CreateCompatibleBitmap(pDC, rectClient.Width(), rectClient.Height());
-	CBitmap* pOldBitmap = memDC.SelectObject(&memBitmap);
+	CBitmap *pOldBitmap = memDC.SelectObject(&memBitmap);
 
 	// 2. 픽처 컨트롤(게임판) 영역 제외하고 배경 그리기 (기존 코드 유지)
-	CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+	CWnd *pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
 	CRect rectGameScreen;
-	if (pGameScreen) {
+	if (pGameScreen)
+	{
 		pGameScreen->GetWindowRect(&rectGameScreen);
 		ScreenToClient(&rectGameScreen);
 	}
 
-	if (!m_imgBg.IsNull()) {
-		if (pGameScreen) memDC.ExcludeClipRect(&rectGameScreen);
+	if (!m_imgBg.IsNull())
+	{
+		if (pGameScreen)
+			memDC.ExcludeClipRect(&rectGameScreen);
 		m_imgBg.Draw(memDC.GetSafeHdc(), rectClient);
 		memDC.SelectClipRgn(NULL);
 	}
@@ -728,7 +871,7 @@ void CMy1126View::OnDraw(CDC* pDC)
 	// 폰트 설정 (기존에 만든 굵은 폰트가 있다면 그걸 써도 됩니다)
 	CFont font;
 	font.CreatePointFont(200, _T("Arial Bold")); // 크기 200
-	CFont* pOldFont = memDC.SelectObject(&font);
+	CFont *pOldFont = memDC.SelectObject(&font);
 	memDC.SetBkMode(TRANSPARENT); // 배경 투명
 
 	// ---------------------------------------------------------
@@ -769,9 +912,8 @@ void CMy1126View::OnDraw(CDC* pDC)
 	// ★ 위치: 왼쪽(x=20), 위쪽(y=10) -> 리스트 컨트롤 윗부분
 	memDC.SetTextColor(RGB(0, 0, 0)); // 그림자(검정)
 	memDC.TextOut(22, 12, strTurn);
-	memDC.SetTextColor(clrText);      // 본문 색상
+	memDC.SetTextColor(clrText); // 본문 색상
 	memDC.TextOut(20, 10, strTurn);
-
 
 	// ---------------------------------------------------------
 	// [2] 화면 중앙(주사위 위)에 "남은 시간" 표시
@@ -783,11 +925,13 @@ void CMy1126View::OnDraw(CDC* pDC)
 
 	// 색상: 시간이 10초 이하로 남으면 빨간색으로 경고!
 	COLORREF clrTimer = RGB(255, 255, 255); // 기본 흰색
-	if (m_nLeftTime <= 10) clrTimer = RGB(255, 0, 0); // 빨간색
+	if (m_nLeftTime <= 10)
+		clrTimer = RGB(255, 0, 0); // 빨간색
 
 	// ★ 위치: 화면 가로 중앙 계산
 	int nCenterX = rectClient.Width() / 2 + 100; // 살짝 오른쪽 보정 (리스트 컨트롤 때문)
-	if (pGameScreen) nCenterX = rectGameScreen.CenterPoint().x; // 게임판이 있으면 그 중앙
+	if (pGameScreen)
+		nCenterX = rectGameScreen.CenterPoint().x; // 게임판이 있으면 그 중앙
 
 	// 텍스트의 정중앙을 맞추기 위해 정렬 옵션 변경
 	memDC.SetTextAlign(TA_CENTER);
@@ -822,7 +966,8 @@ void CMy1126View::OnDraw(CDC* pDC)
 void CMy1126View::OnBnClickedButton3()
 {
 	// 1. 애니메이션 중이면 무시
-	if (m_bIsAnimating) return;
+	if (m_bIsAnimating)
+		return;
 
 	// ★★★ [추가] 3번 다 썼으면 경고하고 리턴 ★★★
 	if (m_nRollCount >= 3)
@@ -834,7 +979,7 @@ void CMy1126View::OnBnClickedButton3()
 	// 2. 굴리기 시작
 	m_bIsAnimating = TRUE;
 	m_bRolled = TRUE; // [추가] 굴렸음! 이제 점수 등록 가능!
-	m_nAniFrame = 30;
+	m_nAniFrame = 90;  // 애니메이션 시간 늘림 (30 -> 90)
 
 	// 3. 굴리기 횟수 증가 및 UI 업데이트
 	m_nRollCount++;
@@ -843,22 +988,46 @@ void CMy1126View::OnBnClickedButton3()
 	strBtn.Format(_T("굴리기 (남은 횟수: %d)"), 3 - m_nRollCount);
 	SetDlgItemText(IDC_BUTTON3, strBtn);
 
+	// 4. 픽처 컨트롤 크기 구하기 (물리 시뮬레이션용)
+	CWnd *pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+	if (!pGameScreen)
+		return;
 
-	// 4. 주사위 굴림 설정 (기존 코드)
+	CRect rect;
+	pGameScreen->GetClientRect(&rect);
+	int CX = rect.Width() / 2;
+	int CY = rect.Height() / 2;
+
+	// 5. 주사위 굴림 설정 및 초기 위치/속도 설정
 	for (int i = 0; i < 5; i++)
 	{
 		if (m_dices[i].bKeep == false)
 		{
 			m_dices[i].bRolling = TRUE;
+
+			// 초기 위치 설정 (화면 중앙 근처에서 랜덤하게)
+			m_dices[i].x = (float)(CX + (rand() % 100 - 50));
+			m_dices[i].y = (float)(CY + (rand() % 100 - 50));
+
+			// 무작위 속도 설정 (방향과 속도)
+			float speed = 5.0f + (rand() % 10);  // 5~15 범위
+			float angle = (rand() % 360) * 3.14159f / 180.0f;  // 0~360도
+			m_dices[i].vx = cos(angle) * speed;
+			m_dices[i].vy = sin(angle) * speed;
+
+			// 무작위 회전 속도
+			m_dices[i].angleSpeed = (float)(rand() % 30 + 10);  // 10~40
 		}
 		else
 		{
 			m_dices[i].bRolling = FALSE;
+			// Keep된 주사위는 위치/속도 유지
 		}
 	}
 
 	// 3번 다 썼으면 버튼 비활성화 (회색으로 만들기)
-	if (m_nRollCount >= 3) {
+	if (m_nRollCount >= 3)
+	{
 		GetDlgItem(IDC_BUTTON3)->EnableWindow(FALSE);
 	}
 }
@@ -868,7 +1037,7 @@ void CMy1126View::OnLButtonDown(UINT nFlags, CPoint point)
 	// ★★★ [추가] 주사위 클릭 체크 (Keep 토글) ★★★
 
 	// 1. 픽처 컨트롤 영역 구하기
-	CWnd* pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
+	CWnd *pGameScreen = GetDlgItem(IDC_GAME_SCREEN);
 	if (pGameScreen)
 	{
 		CRect rectGame;
@@ -885,27 +1054,46 @@ void CMy1126View::OnLButtonDown(UINT nFlags, CPoint point)
 			int CX = rectGame.Width() / 2;
 			int CY = rectGame.Height() / 2;
 
-			int nDiceSize = 90;
-			int nGapX = 110;
+			int nDiceSize = 60;  // DrawGame과 동일하게
+			int nGapX = 80;
 
 			// 4. 각 주사위 위치와 비교
 			for (int i = 0; i < 5; i++)
 			{
 				int targetX = 0, targetY = 0;
 
-				if (i == 0) { targetX = CX - nGapX; targetY = CY - 55; }
-				if (i == 1) { targetX = CX;         targetY = CY - 55; }
-				if (i == 2) { targetX = CX + nGapX; targetY = CY - 55; }
-				if (i == 3) { targetX = CX - 55;    targetY = CY + 55; }
-				if (i == 4) { targetX = CX + 55;    targetY = CY + 55; }
+				if (i == 0)
+				{
+					targetX = CX - nGapX;
+					targetY = CY - 55;
+				}
+				if (i == 1)
+				{
+					targetX = CX;
+					targetY = CY - 55;
+				}
+				if (i == 2)
+				{
+					targetX = CX + nGapX;
+					targetY = CY - 55;
+				}
+				if (i == 3)
+				{
+					targetX = CX - 55;
+					targetY = CY + 55;
+				}
+				if (i == 4)
+				{
+					targetX = CX + 55;
+					targetY = CY + 55;
+				}
 
 				// 주사위 영역 계산
 				CRect rectDice(
 					targetX - nDiceSize / 2,
 					targetY - nDiceSize / 2,
 					targetX + nDiceSize / 2,
-					targetY + nDiceSize / 2
-				);
+					targetY + nDiceSize / 2);
 
 				// 5. 클릭했으면 Keep 상태 토글
 				if (rectDice.PtInRect(CPoint(localX, localY)))
@@ -929,10 +1117,14 @@ void CMy1126View::NextTurn()
 	m_bRolled = FALSE; // [추가] 아직 안 굴림!
 
 	// 2. 주사위 상태 초기화
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 5; i++)
+	{
 		m_dices[i].bKeep = FALSE;
 		m_dices[i].bRolling = FALSE;
 		m_dices[i].angle = 0;
+		m_dices[i].vx = 0;
+		m_dices[i].vy = 0;
+		m_dices[i].angleSpeed = 0;
 	}
 
 	// 3. 버튼 텍스트 원상복구
@@ -948,7 +1140,8 @@ void CMy1126View::NextTurn()
 	for (int i = 0; i < 15; i++)
 	{
 		// ★★★ [핵심 수정] 합계(6)랑 보너스(7)는 지우지 마! ★★★
-		if (i == 6 || i == 7) continue;
+		if (i == 6 || i == 7)
+			continue;
 
 		// 확정 안 된 나머지 칸들만 빈칸으로 만듦 (현재 플레이어 기준)
 		if (m_bScoreFixed[m_nCurrentPlayer][i] == FALSE)
@@ -973,39 +1166,52 @@ int CMy1126View::GetScore(int nRow)
 {
 	// 1. 주사위 눈금 개수 세기 (빈도수 배열)
 	// counts[1]은 1의 개수, counts[6]은 6의 개수
-	int counts[7] = { 0 };
+	int counts[7] = {0};
 	int nSumAll = 0; // 주사위 5개의 총합
 
 	for (int i = 0; i < 5; i++)
 	{
 		int val = m_dices[i].value;
-		if (val >= 1 && val <= 6) counts[val]++;
+		if (val >= 1 && val <= 6)
+			counts[val]++;
 		nSumAll += val;
 	}
 
 	// 2. 족보별 점수 계산
 	switch (nRow)
 	{
-	case 0: return counts[1] * 1; // Ones
-	case 1: return counts[2] * 2; // Twos
-	case 2: return counts[3] * 3; // Threes
-	case 3: return counts[4] * 4; // Fours
-	case 4: return counts[5] * 5; // Fives
-	case 5: return counts[6] * 6; // Sixes
+	case 0:
+		return counts[1] * 1; // Ones
+	case 1:
+		return counts[2] * 2; // Twos
+	case 2:
+		return counts[3] * 3; // Threes
+	case 3:
+		return counts[4] * 4; // Fours
+	case 4:
+		return counts[5] * 5; // Fives
+	case 5:
+		return counts[6] * 6; // Sixes
 
 		// 6, 7번은 합계/보너스 칸이므로 계산 안 함
-	case 6: return 0;
-	case 7: return 0;
+	case 6:
+		return 0;
+	case 7:
+		return 0;
 
 	case 8: // Three of a Kind (3개 이상 같으면 총합)
-		for (int i = 1; i <= 6; i++) {
-			if (counts[i] >= 3) return nSumAll;
+		for (int i = 1; i <= 6; i++)
+		{
+			if (counts[i] >= 3)
+				return nSumAll;
 		}
 		return 0;
 
 	case 9: // Four of a Kind (4개 이상 같으면 총합)
-		for (int i = 1; i <= 6; i++) {
-			if (counts[i] >= 4) return nSumAll;
+		for (int i = 1; i <= 6; i++)
+		{
+			if (counts[i] >= 4)
+				return nSumAll;
 		}
 		return 0;
 
@@ -1013,29 +1219,39 @@ int CMy1126View::GetScore(int nRow)
 	{
 		bool b3 = false; // 3개짜리가 있는가?
 		bool b2 = false; // 2개짜리가 있는가?
-		for (int i = 1; i <= 6; i++) {
-			if (counts[i] == 3) b3 = true;
-			if (counts[i] == 2) b2 = true;
-			if (counts[i] == 5) return 25; // 5개 다 같아도 풀하우스 인정 (Yacht is FH)
+		for (int i = 1; i <= 6; i++)
+		{
+			if (counts[i] == 3)
+				b3 = true;
+			if (counts[i] == 2)
+				b2 = true;
+			if (counts[i] == 5)
+				return 25; // 5개 다 같아도 풀하우스 인정 (Yacht is FH)
 		}
 		return (b3 && b2) ? 25 : 0;
 	}
 
 	case 11: // Small Straight (4개 연속) -> 점수 30점
 		// 가능한 경우의 수: 1234, 2345, 3456
-		if (counts[1] && counts[2] && counts[3] && counts[4]) return 30;
-		if (counts[2] && counts[3] && counts[4] && counts[5]) return 30;
-		if (counts[3] && counts[4] && counts[5] && counts[6]) return 30;
+		if (counts[1] && counts[2] && counts[3] && counts[4])
+			return 30;
+		if (counts[2] && counts[3] && counts[4] && counts[5])
+			return 30;
+		if (counts[3] && counts[4] && counts[5] && counts[6])
+			return 30;
 		return 0;
 
 	case 12: // Large Straight (5개 연속) -> 점수 40점
 		// 가능한 경우의 수: 12345, 23456
-		if (counts[1] && counts[2] && counts[3] && counts[4] && counts[5]) return 40;
-		if (counts[2] && counts[3] && counts[4] && counts[5] && counts[6]) return 40; 
+		if (counts[1] && counts[2] && counts[3] && counts[4] && counts[5])
+			return 40;
+		if (counts[2] && counts[3] && counts[4] && counts[5] && counts[6])
+			return 40;
 		return 0;
 
 	case 13: // Yacht (5개 모두 같음) -> 점수 50점
-		for (int i = 1; i <= 6; i++) {
+		for (int i = 1; i <= 6; i++)
+		{
 			if (counts[i] == 5) // 5개가 다 똑같다면?
 			{
 				// ★ 이미 요트를 한 번 따놨으면(50점 기록했으면) -> 100점!
@@ -1055,7 +1271,7 @@ int CMy1126View::GetScore(int nRow)
 	return 0;
 }
 
-void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
+void CMy1126View::OnClickList2(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 	*pResult = 0;
@@ -1063,8 +1279,10 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	int nRow = pNMItemActivate->iItem; // 클릭한 행 번호
 
 	// 1. 유효성 검사
-	if (nRow == -1) return; // 빈공간 클릭
-	if (nRow == 6 || nRow == 7) return; // 합계/보너스 칸 클릭 금지
+	if (nRow == -1)
+		return; // 빈공간 클릭
+	if (nRow == 6 || nRow == 7)
+		return; // 합계/보너스 칸 클릭 금지
 
 	if (m_bRolled == FALSE)
 	{
@@ -1073,8 +1291,8 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 
 	// ★ [중요] '현재 차례인 사람'이 이 칸을 이미 채웠는지 확인
-	if (m_bScoreFixed[m_nCurrentPlayer][nRow] == TRUE) return;
-
+	if (m_bScoreFixed[m_nCurrentPlayer][nRow] == TRUE)
+		return;
 
 	// 2. 점수 계산 및 입력
 	int nScore = GetScore(nRow);
@@ -1089,10 +1307,10 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	m_bScoreFixed[m_nCurrentPlayer][nRow] = TRUE;
 
 	// 요트(50점) 확정 시 해당 플레이어에게 보너스 플래그 켜기
-	if (nRow == 13 && nScore == 50) {
+	if (nRow == 13 && nScore == 50)
+	{
 		m_bYachtFixed[m_nCurrentPlayer] = TRUE;
 	}
-
 
 	// 3. 상단 합계(Sum) 및 보너스 자동 계산 (현재 플레이어 것만)
 	int nSubTotal = 0;
@@ -1100,7 +1318,8 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	// 0~5번(Ones~Sixes) 점수 합산
 	for (int i = 0; i <= 5; i++)
 	{
-		if (m_bScoreFixed[m_nCurrentPlayer][i] == TRUE) {
+		if (m_bScoreFixed[m_nCurrentPlayer][i] == TRUE)
+		{
 			CString strVal = mlist.GetItemText(i, nCol);
 			nSubTotal += _ttoi(strVal);
 		}
@@ -1112,13 +1331,14 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	mlist.SetItemText(6, nCol, strSum);
 
 	// 7번 줄(보너스) 업데이트
-	if (nSubTotal >= 63) {
+	if (nSubTotal >= 63)
+	{
 		mlist.SetItemText(7, nCol, _T("35"));
 	}
-	else {
+	else
+	{
 		mlist.SetItemText(7, nCol, _T("0"));
 	}
-
 
 	// =========================================================
 	// ★★★ [4. 게임 종료 체크 및 턴 넘기기] ★★★
@@ -1132,8 +1352,10 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			m_nCurrentPlayer = 1 - m_nCurrentPlayer;
 
-			if (m_nCurrentPlayer == 0) AfxMessageBox(_T("당신(나)의 차례입니다! 🎲"));
-			else AfxMessageBox(_T("상대방의 차례입니다! 🎲"));
+			if (m_nCurrentPlayer == 0)
+				AfxMessageBox(_T("당신(나)의 차례입니다! 🎲"));
+			else
+				AfxMessageBox(_T("상대방의 차례입니다! 🎲"));
 		}
 
 		// 1인용이면 m_nCurrentPlayer는 계속 0으로 유지됨 -> 내 점수판에만 계속 기록
@@ -1152,8 +1374,10 @@ BOOL CMy1126View::CheckGameOver()
 	{
 		for (int i = 0; i < 15; i++)
 		{
-			if (i == 6 || i == 7) continue;
-			if (m_bScoreFixed[p][i] == FALSE) return FALSE; // 빈칸 있으면 계속 진행
+			if (i == 6 || i == 7)
+				continue;
+			if (m_bScoreFixed[p][i] == FALSE)
+				return FALSE; // 빈칸 있으면 계속
 		}
 	}
 
@@ -1165,8 +1389,10 @@ BOOL CMy1126View::CheckGameOver()
 	int nScoreOpp = 0;
 
 	// 내 점수 계산
-	for (int i = 0; i < 15; i++) {
-		if (i == 6) continue;
+	for (int i = 0; i < 15; i++)
+	{
+		if (i == 6)
+			continue;
 		nScoreMe += _ttoi(mlist.GetItemText(i, 1));
 	}
 
@@ -1189,10 +1415,23 @@ BOOL CMy1126View::CheckGameOver()
 	}
 	else // 2인용 결과창
 	{
+		// 상대 점수 계산
+		for (int i = 0; i < 15; i++)
+		{
+			if (i == 6)
+				continue;
+			nScoreOpp += _ttoi(mlist.GetItemText(i, 2));
+		}
+
 		strMsg.Format(_T("게임 종료!\n\n[나] : %d점\n[상대] : %d점\n\n"), nScoreMe, nScoreOpp);
-		if (nScoreMe > nScoreOpp) strMsg += _T("축하합니다! 승리했습니다! 🏆");
-		else if (nScoreMe < nScoreOpp) strMsg += _T("패배했습니다. 😢");
-		else strMsg += _T("무승부입니다!");
+		if (nScoreMe > nScoreOpp)
+			strMsg += _T("축하합니다! 승리했습니다! 🏆");
+		else if (nScoreMe < nScoreOpp)
+			strMsg += _T("패배했습니다. 😢");
+		else
+			strMsg += _T("무승부입니다!");
+
+		strMsg += _T("\n\n새 게임을 시작하시겠습니까?");
 	}
 
 	// 여기에 안내 메시지 추가
@@ -1216,14 +1455,14 @@ void CMy1126View::OnBnClickedButton4()
 {
 	// 1. 종료 확인 메시지
 	if (AfxMessageBox(_T("현재 게임을 중단하고 메인 화면으로 돌아가시겠습니까?"),
-		MB_YESNO | MB_ICONQUESTION) == IDNO)
+					  MB_YESNO | MB_ICONQUESTION) == IDNO)
 	{
 		return; // '아니요' 누르면 게임 계속
 	}
 
 	// 2. 메인 윈도우(게임 화면) 숨기기
 	// 이렇게 하면 화면에서 게임이 싹 사라집니다.
-	CWnd* pMainWnd = AfxGetMainWnd();
+	CWnd *pMainWnd = AfxGetMainWnd();
 	if (pMainWnd)
 	{
 		pMainWnd->ShowWindow(SW_HIDE);
@@ -1231,9 +1470,10 @@ void CMy1126View::OnBnClickedButton4()
 
 	while (TRUE)
 	{
-		// 1. 모드 선택 화면 띄우기
-		CStartDlg startDlg;
-		INT_PTR nStartResult = startDlg.DoModal();
+		// [선택 완료]
+		// 4. 선택한 모드 저장
+		CMy1126App *pApp = (CMy1126App *)AfxGetApp();
+		pApp->m_nGameMode = dlg.m_nSelectedMode;
 
 		if (nStartResult == IDOK)
 		{
@@ -1265,7 +1505,7 @@ void CMy1126View::OnBnClickedButton4()
 }
 
 // ★★★ [추가] 배경 지우기 방지 (깜빡임 제거) ★★★
-BOOL CMy1126View::OnEraseBkgnd(CDC* pDC)
+BOOL CMy1126View::OnEraseBkgnd(CDC *pDC)
 {
 	// 배경을 지우지 않음 (OnDraw에서 모두 그리므로)
 	// 이렇게 하면 깜빡임이 사라집니다
@@ -1280,7 +1520,7 @@ void CMy1126View::UpdateScorePreview()
 	{
 		for (int i = 0; i < 15; i++)
 		{
-			m_nPreviewScores[i] = -1;  // -1은 "표시 안 함"
+			m_nPreviewScores[i] = -1; // -1은 "표시 안 함"
 			m_bCanScore[i] = FALSE;
 		}
 		mlist.Invalidate(FALSE);
@@ -1309,7 +1549,7 @@ void CMy1126View::UpdateScorePreview()
 		// 점수 계산
 		int nScore = GetScore(i);
 		m_nPreviewScores[i] = nScore;
-		
+
 		// 0점 초과면 하이라이트 대상
 		m_bCanScore[i] = (nScore > 0) ? TRUE : FALSE;
 	}
