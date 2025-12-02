@@ -8,6 +8,7 @@
 #include "afxdialogex.h"
 #include "1126.h"
 #include "MainFrm.h"
+#include <afxdb.h>
 
 #include "1126Doc.h"
 #include "1126View.h"
@@ -18,18 +19,16 @@
 #define new DEBUG_NEW
 #endif
 
-
 // CMy1126App
 
 BEGIN_MESSAGE_MAP(CMy1126App, CWinApp)
-	ON_COMMAND(ID_APP_ABOUT, &CMy1126App::OnAppAbout)
-	// 표준 파일을 기초로 하는 문서 명령입니다.
-	ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
-	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
-	// 표준 인쇄 설정 명령입니다.
-	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinApp::OnFilePrintSetup)
+ON_COMMAND(ID_APP_ABOUT, &CMy1126App::OnAppAbout)
+// 표준 파일을 기초로 하는 문서 명령입니다.
+ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
+ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
+// 표준 인쇄 설정 명령입니다.
+ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinApp::OnFilePrintSetup)
 END_MESSAGE_MAP()
-
 
 // CMy1126App 생성
 
@@ -57,7 +56,6 @@ CMy1126App::CMy1126App() noexcept
 
 CMy1126App theApp;
 
-
 // CMy1126App 초기화
 
 BOOL CMy1126App::InitInstance()
@@ -74,6 +72,18 @@ BOOL CMy1126App::InitInstance()
 
 	CWinApp::InitInstance();
 
+	try
+	{
+
+		m_db.OpenEx(_T("DSN=dice;UID=swuser02;PWD=SWUser02;PORT=32065;DATABASE=swuser02;"), CDatabase::noOdbcDialog);
+	}
+	catch (CDBException *e)
+	{
+		// 연결 실패 시 에러 메시지 띄우기
+		e->ReportError();
+		e->Delete();
+		return FALSE;
+	}
 
 	// OLE 라이브러리를 초기화합니다.
 	if (!AfxOleInit())
@@ -97,8 +107,7 @@ BOOL CMy1126App::InitInstance()
 	// TODO: 이 문자열을 회사 또는 조직의 이름과 같은
 	// 적절한 내용으로 수정해야 합니다.
 	SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
-	LoadStdProfileSettings(4);  // MRU를 포함하여 표준 INI 파일 옵션을 로드합니다.
-
+	LoadStdProfileSettings(4); // MRU를 포함하여 표준 INI 파일 옵션을 로드합니다.
 
 	// =========================================================
 	// ★★★ [수정] 다이얼로그 실행 순서 (무한 반복 구조) ★★★
@@ -136,24 +145,21 @@ BOOL CMy1126App::InitInstance()
 	}
 	// =========================================================
 
-
 	// 애플리케이션의 문서 템플릿을 등록합니다.  문서 템플릿은
 	//  문서, 프레임 창 및 뷰 사이의 연결 역할을 합니다.
-	CSingleDocTemplate* pDocTemplate;
+	CSingleDocTemplate *pDocTemplate;
 	pDocTemplate = new CSingleDocTemplate(
 		IDR_MAINFRAME,
 		RUNTIME_CLASS(CMy1126Doc),
-		RUNTIME_CLASS(CMainFrame),       // 주 SDI 프레임 창입니다.
+		RUNTIME_CLASS(CMainFrame), // 주 SDI 프레임 창입니다.
 		RUNTIME_CLASS(CMy1126View));
 	if (!pDocTemplate)
 		return FALSE;
 	AddDocTemplate(pDocTemplate);
 
-
 	// 표준 셸 명령, DDE, 파일 열기에 대한 명령줄을 구문 분석합니다.
 	CCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
-
 
 	// 명령줄에 지정된 명령을 디스패치합니다.
 	// 응용 프로그램이 /RegServer, /Register, /Unregserver 또는 /Unregister로 시작된 경우 FALSE를 반환합니다.
@@ -168,14 +174,13 @@ BOOL CMy1126App::InitInstance()
 
 int CMy1126App::ExitInstance()
 {
-	//TODO: 추가한 추가 리소스를 처리합니다.
+	// TODO: 추가한 추가 리소스를 처리합니다.
 	AfxOleTerm(FALSE);
-
+	m_db.Close();
 	return CWinApp::ExitInstance();
 }
 
 // CMy1126App 메시지 처리기
-
 
 // 응용 프로그램 정보에 사용되는 CAboutDlg 대화 상자입니다.
 
@@ -183,25 +188,28 @@ class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg() noexcept;
-	CImage m_image;   // 이미지 객체
-	int m_posX;       // 이미지 X 좌표
-	int m_posY;       // 이미지 Y 좌표
+	CImage m_image; // 이미지 객체
+	int m_posX;		// 이미지 X 좌표
+	int m_posY;		// 이미지 Y 좌표
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
+	enum
+	{
+		IDD = IDD_ABOUTBOX
+	};
 #endif
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 지원입니다.
+	virtual void DoDataExchange(CDataExchange *pDX); // DDX/DDV 지원입니다.
 
-// 구현입니다.
+	// 구현입니다.
 protected:
 	DECLARE_MESSAGE_MAP()
 	virtual BOOL OnInitDialog();
 
 public:
-//	afx_msg void OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult);
+	//	afx_msg void OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnPaint();
 };
@@ -210,15 +218,15 @@ CAboutDlg::CAboutDlg() noexcept : CDialogEx(IDD_ABOUTBOX)
 {
 }
 
-void CAboutDlg::DoDataExchange(CDataExchange* pDX)
+void CAboutDlg::DoDataExchange(CDataExchange *pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
-	// ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST2, &CAboutDlg::OnNMCustomdrawList2)
-	ON_WM_TIMER()
-	ON_WM_PAINT()
+// ON_NOTIFY(NM_CUSTOMDRAW, IDC_LIST2, &CAboutDlg::OnNMCustomdrawList2)
+ON_WM_TIMER()
+ON_WM_PAINT()
 END_MESSAGE_MAP()
 
 // 대화 상자를 실행하기 위한 응용 프로그램 명령입니다.
@@ -249,12 +257,10 @@ BOOL CAboutDlg::OnInitDialog()
 	// 3. 타이머 시작 (ID: 1, 30ms 간격)
 	SetTimer(1, 30, NULL);
 
-	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환
+	return TRUE; // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환
 }
 
-
-
-//void CAboutDlg::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
+// void CAboutDlg::OnNMCustomdrawList2(NMHDR* pNMHDR, LRESULT* pResult)
 //{
 //	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
 //	*pResult = CDRF_DODEFAULT;
@@ -262,17 +268,17 @@ BOOL CAboutDlg::OnInitDialog()
 //	switch (pLVCD->nmcd.dwDrawStage)
 //	{
 //	case CDDS_PREPAINT:
-		// 아이템별로 그리기 단계가 오면 다시 알려달라고 요청
+//  아이템별로 그리기 단계가 오면 다시 알려달라고 요청
 //		*pResult = CDRF_NOTIFYITEMDRAW;
 //		break;
 //
 //	case CDDS_ITEMPREPAINT:
 //	{
-		// 현재 그리는 행(Row)의 번호
+// 현재 그리는 행(Row)의 번호
 //		int nRow = (int)pLVCD->nmcd.dwItemSpec;
 //
-		// 이미지를 보면 '합계(6번)'와 '보너스(7번)'가 진한 색입니다.
-		// 인덱스는 0부터 시작하므로 위 배열 순서에 맞춰 6, 7번을 체크합니다.
+// 이미지를 보면 '합계(6번)'와 '보너스(7번)'가 진한 색입니다.
+// 인덱스는 0부터 시작하므로 위 배열 순서에 맞춰 6, 7번을 체크합니다.
 //		if (nRow == 6 || nRow == 7)
 //		{
 //			pLVCD->clrTextBk = RGB(100, 110, 120); // 배경색: 진한 회색 (이미지와 유사)
@@ -280,7 +286,7 @@ BOOL CAboutDlg::OnInitDialog()
 //		}
 //		else
 //		{
-			// 나머지 일반 행 (약간 베이지/연회색 톤)
+// 나머지 일반 행 (약간 베이지/연회색 톤)
 //			pLVCD->clrTextBk = RGB(240, 235, 230);
 //			pLVCD->clrText = RGB(0, 0, 0);
 //		}
@@ -300,7 +306,8 @@ void CAboutDlg::OnTimer(UINT_PTR nIDEvent)
 		m_posX += 5;
 
 		// 화면 밖으로 나가면 다시 처음으로 (선택 사항)
-		if (m_posX > 500) m_posX = 0;
+		if (m_posX > 500)
+			m_posX = 0;
 
 		// **중요**: 화면 갱신 요청 -> OnPaint()가 호출됨
 		// FALSE 파라미터는 배경을 지우지 않게 하여 깜빡임을 줄이는 팁입니다.

@@ -49,6 +49,7 @@ BOOL CIntroDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
 
+
     // =========================================================
     // ★★★ [추가] 배경 이미지 불러오기 ★★★
     // =========================================================
@@ -126,25 +127,6 @@ void CIntroDlg::OnPaint()
     }
 }
 
-// [공통 함수] DB 연결 시도 (성공하면 TRUE 반환)
-BOOL CIntroDlg::ConnectDB()
-{
-    if (m_db.IsOpen()) return TRUE; // 이미 열려있으면 OK
-
-    try
-    {
-        // ★★★ 주의: DSN=다음에 아까 만든 'ODBC 이름'을 넣어야 합니다.
-        // UID=디비아이디; PWD=디비비번;
-        m_db.OpenEx(_T("DSN=dice;UID=swuser02;PWD=SWUser02;PORT=32065;DATABASE=swuser02;"), CDatabase::noOdbcDialog);
-        return TRUE;
-    }
-    catch (CDBException* e)
-    {
-        AfxMessageBox(_T("DB 연결 실패!\nODBC 설정이나 ID/PW를 확인하세요.\n") + e->m_strError);
-        e->Delete();
-        return FALSE;
-    }
-}
 
 void CIntroDlg::OnBnClickedButton4()
 {
@@ -157,16 +139,18 @@ void CIntroDlg::OnBnClickedButton4()
     }
 
     // 2. DB 연결
-    if (ConnectDB() == FALSE) return;
+
+    CMy1126App* pApp = (CMy1126App*)AfxGetApp();
 
     // 3. 회원가입 쿼리 (INSERT)
     CString strQuery;
+
     // TBL_USER 테이블에 ID, PW, 점수(0) 저장
     strQuery.Format(_T("INSERT INTO DC (ID, PW, SCORE) VALUES ('%s', '%s', 0)"), m_ID, m_PW);
 
     try
     {
-        m_db.ExecuteSQL(strQuery);
+        pApp->m_db.ExecuteSQL(strQuery);
         AfxMessageBox(_T("회원가입 성공! 이제 로그인 해주세요."));
     }
     catch (CDBException* e)
@@ -185,6 +169,7 @@ void CIntroDlg::OnBnClickedButton1()
 {
     // 1. 화면 값 가져오기
     UpdateData(TRUE);
+    CMy1126App* pApp = (CMy1126App*)AfxGetApp();
 
     if (m_ID.IsEmpty() || m_PW.IsEmpty()) {
         AfxMessageBox(_T("아이디와 비밀번호를 입력해주세요."));
@@ -192,14 +177,15 @@ void CIntroDlg::OnBnClickedButton1()
     }
 
     // 2. DB 연결
-    if (ConnectDB() == FALSE) return;
+    //if (ConnectDB() == FALSE) return;
 
     // 3. 로그인 쿼리 (SELECT)
     CString strQuery;
     strQuery.Format(_T("SELECT * FROM DC WHERE ID='%s' AND PW='%s'"), m_ID, m_PW);
 
     // 4. 조회 결과 확인
-    CRecordset rs(&m_db);
+    CRecordset rs(&(pApp->m_db));
+
     try
     {
         rs.Open(CRecordset::forwardOnly, strQuery);
@@ -209,7 +195,7 @@ void CIntroDlg::OnBnClickedButton1()
             AfxMessageBox(_T("로그인 성공! 게임을 시작합니다."));
 
             // ★ 중요: 로그인이 성공했으므로 다이얼로그를 닫고 게임으로 넘어감
-            CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+           
             pApp->m_strCurrentUserID = m_ID;  // <--- 이게 있어야 함
 
             EndDialog(IDOK);
@@ -232,7 +218,6 @@ void CIntroDlg::OnBnClickedButton3()
 {
     // 1. 랭킹 다이얼로그 객체 생성
     CRankDlg dlg;
-
     // 2. 창 띄우기
     dlg.DoModal();
 }

@@ -20,9 +20,9 @@
 #define IDC_BUTTON2                     1009
 #define IDC_GAME_START                  1010
 #define IDC_BTN_HELP                    1011
-#define IDC_LIST1                       1012
+#define IDC_LISTWinRank                1012
 #define IDC_EDIT1                       1013
-#define IDC_LIST3                       1013
+#define IDC_LISTScoreRank               1013
 #define IDC_EDIT2                       1014
 
 // Next default values for new objects

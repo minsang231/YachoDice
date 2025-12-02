@@ -13,7 +13,6 @@ public:
 	virtual ~CIntroDlg();
 	CImage m_imgBg;
 	virtual BOOL OnInitDialog();
-	CDatabase m_db;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
@@ -30,7 +29,6 @@ public:
 	afx_msg void OnPaint();
 	CString m_ID;
 	CString m_PW;
-	BOOL ConnectDB();
 	afx_msg void OnBnClickedButton4();
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton3();
