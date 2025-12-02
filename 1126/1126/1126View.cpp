@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "framework.h"
+
 // SHARED_HANDLERS는 미리 보기, 축소판 그림 및 검색 필터 처리기를 구현하는 ATL 프로젝트에서 정의할 수 있으며
 // 해당 프로젝트와 문서 코드를 공유하도록 해 줍니다.
 #ifndef SHARED_HANDLERS
@@ -47,7 +48,7 @@ CMy1126View::CMy1126View() noexcept
 {
 	// TODO: 여기에 생성 코드를 추가합니다.
 
-	// ★★★ [추가] 미리보기 점수 배열 초기화 ★★★
+	//미리보기 점수 배열 초기화 
 	for (int i = 0; i < 15; i++)
 	{
 		m_nPreviewScores[i] = -1;  // -1은 "표시 안 함"
@@ -57,6 +58,10 @@ CMy1126View::CMy1126View() noexcept
 
 CMy1126View::~CMy1126View()
 {
+	if(m_db.IsOpen())
+	{
+		m_db.Close();
+	}
 }
 
 void CMy1126View::DoDataExchange(CDataExchange* pDX)
@@ -65,12 +70,15 @@ void CMy1126View::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST2, mlist);
 }
 
+
+
+
 BOOL CMy1126View::PreCreateWindow(CREATESTRUCT& cs)
 {
 	// TODO: CREATESTRUCT cs를 수정하여 여기에서
 	//  Window 클래스 또는 스타일을 수정합니다.
 
-	// ★★★ [추가] 전체 윈도우에 더블 버퍼링 적용 (깜빡임 제거) ★★★
+	// 전체 윈도우에 더블 버퍼링 적용 (깜빡임 제거) 
 	cs.dwExStyle |= WS_EX_COMPOSITED;
 
 	return CFormView::PreCreateWindow(cs);
@@ -82,8 +90,27 @@ void CMy1126View::OnInitialUpdate()
 	GetParentFrame()->RecalcLayout();
 	ResizeParentToFit();
 
+	//DB 연결
+	CDatabase db;
+	try {
+		// DSN, ID, PW 확인 필수
+		db.OpenEx(_T("DSN=dice;UID=swuser02;PWD=SWUser02;PORT=32065;DATABASE=swuser02;"), CDatabase::noOdbcDialog);
+	}
+	catch (CDBException* e) {
+		e->Delete();
+		return;
+	}
+	//랭킹 표시
+	while(!rs.IsEOF()){
+		CString strName;
+		rs.GetFieldValue(_T("name"),strName);
+		mlist.AddString(strName);
+		rs.MoveNext();
+	}
+
+
 	// =========================================================
-	// ★★★ [추가] 버튼 폰트 설정 (크고 굵게) ★★★
+	//  [추가] 버튼 폰트 설정 (크고 굵게)
 	// =========================================================
 	if (m_fontButton.GetSafeHandle() == NULL)
 	{
@@ -1330,15 +1357,7 @@ void CMy1126View::SaveResultToDB(int myScore, int oppScore)
 	if (strUserID.IsEmpty()) return;
 
 	// 2. DB 연결
-	CDatabase db;
-	try {
-		// DSN, ID, PW 확인 필수
-		db.OpenEx(_T("DSN=dice;UID=swuser02;PWD=SWUser02;PORT=32065;DATABASE=swuser02;"), CDatabase::noOdbcDialog);
-	}
-	catch (CDBException* e) {
-		e->Delete();
-		return;
-	}
+	
 
 	// 3. 쿼리 만들기
 	CString strQuery;
