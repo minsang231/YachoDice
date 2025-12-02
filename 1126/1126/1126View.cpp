@@ -15,6 +15,7 @@
 
 #include <math.h>
 #include "CStartDlg.h"
+#include "CIntroDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -736,19 +737,31 @@ void CMy1126View::OnDraw(CDC* pDC)
 	CString strTurn;
 	COLORREF clrText;
 
+	CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+	CString strUserID = pApp->m_strCurrentUserID;
+
 	if (m_nGameMode == 1) // 1인용
 	{
-		strTurn = _T("Single Player Mode");
-		clrText = RGB(255, 255, 255); // 흰색
+		if (strUserID.IsEmpty()) {
+			strTurn = _T("Single Player (Guest)"); // 로그인 안 함
+		}
+		else {
+			strTurn.Format(_T("[%s] 님의 게임"), strUserID); // 로그인 함
+		}
+		clrText = RGB(255, 255, 255);
 	}
 	else // 2인용
 	{
-		if (m_nCurrentPlayer == 0) {
-			strTurn = _T("<<< Player 1 (나) <<<");
+		if (m_nCurrentPlayer == 0) // 내 차례 (왼쪽)
+		{
+			if (strUserID.IsEmpty()) strTurn = _T("<<< Player 1 (나) <<<");
+			else strTurn.Format(_T("<<< %s (나) <<<"), strUserID); // 내 아이디 표시
+
 			clrText = RGB(255, 215, 0); // 금색
 		}
-		else {
-			strTurn = _T(">>> Player 2 (상대) >>>");
+		else // 상대방 차례 (오른쪽)
+		{
+			strTurn = _T(">>> Guest (상대) >>>"); // 상대는 무조건 게스트
 			clrText = RGB(100, 100, 255); // 파란색
 		}
 	}
@@ -1133,16 +1146,14 @@ void CMy1126View::OnClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CMy1126View::CheckGameOver()
 {
-	// ★ 검사할 인원 수 설정
+	// 1. 아직 빈칸이 있는지 검사
 	int nMaxPlayer = (m_nGameMode == 1) ? 1 : 2;
-
-	// 플레이어 수만큼 반복 (1인용이면 0번만 검사, 2인용이면 0, 1번 검사)
 	for (int p = 0; p < nMaxPlayer; p++)
 	{
 		for (int i = 0; i < 15; i++)
 		{
 			if (i == 6 || i == 7) continue;
-			if (m_bScoreFixed[p][i] == FALSE) return FALSE; // 빈칸 있으면 계속
+			if (m_bScoreFixed[p][i] == FALSE) return FALSE; // 빈칸 있으면 계속 진행
 		}
 	}
 
@@ -1159,27 +1170,33 @@ BOOL CMy1126View::CheckGameOver()
 		nScoreMe += _ttoi(mlist.GetItemText(i, 1));
 	}
 
-	CString strMsg;
-
-	if (m_nGameMode == 1) // 1인용 결과창
-	{
-		strMsg.Format(_T("게임 종료!\n\n🏆 최종 점수: [ %d점 ]\n\n새 게임을 시작하시겠습니까?"), nScoreMe);
-	}
-	else // 2인용 결과창
-	{
-		// 상대 점수 계산
+	// 2인용일 때만 상대 점수 계산
+	if (m_nGameMode == 2) {
 		for (int i = 0; i < 15; i++) {
 			if (i == 6) continue;
 			nScoreOpp += _ttoi(mlist.GetItemText(i, 2));
 		}
+	}
 
+	// ★★★ [추가] DB에 결과 저장! (이제 에러 안 남) ★★★
+	SaveResultToDB(nScoreMe, nScoreOpp);
+
+	CString strMsg;
+
+	if (m_nGameMode == 1) // 1인용 결과창
+	{
+		strMsg.Format(_T("게임 종료!\n\n🏆 최종 점수: [ %d점 ]\n\n(로그인 시 최고 점수가 갱신됩니다)"), nScoreMe);
+	}
+	else // 2인용 결과창
+	{
 		strMsg.Format(_T("게임 종료!\n\n[나] : %d점\n[상대] : %d점\n\n"), nScoreMe, nScoreOpp);
 		if (nScoreMe > nScoreOpp) strMsg += _T("축하합니다! 승리했습니다! 🏆");
 		else if (nScoreMe < nScoreOpp) strMsg += _T("패배했습니다. 😢");
 		else strMsg += _T("무승부입니다!");
-
-		strMsg += _T("\n\n새 게임을 시작하시겠습니까?");
 	}
+
+	// 여기에 안내 메시지 추가
+	strMsg += _T("\n\n새 게임을 시작하시겠습니까?");
 
 	// 재시작 확인
 	if (AfxMessageBox(strMsg, MB_YESNO | MB_ICONQUESTION) == IDYES)
@@ -1194,6 +1211,7 @@ BOOL CMy1126View::CheckGameOver()
 
 	return TRUE;
 }
+
 void CMy1126View::OnBnClickedButton4()
 {
 	// 1. 종료 확인 메시지
@@ -1211,31 +1229,38 @@ void CMy1126View::OnBnClickedButton4()
 		pMainWnd->ShowWindow(SW_HIDE);
 	}
 
-	// 3. 모드 선택 대화상자 띄우기
-	CStartDlg dlg;
-
-	if (dlg.DoModal() == IDOK)
+	while (TRUE)
 	{
-		// [선택 완료]
-		// 4. 선택한 모드 저장
-		CMy1126App* pApp = (CMy1126App*)AfxGetApp();
-		pApp->m_nGameMode = dlg.m_nSelectedMode;
+		// 1. 모드 선택 화면 띄우기
+		CStartDlg startDlg;
+		INT_PTR nStartResult = startDlg.DoModal();
 
-		// 5. 메인 윈도우 다시 보여주기
-		if (pMainWnd)
+		if (nStartResult == IDOK)
 		{
-			pMainWnd->ShowWindow(SW_SHOW);
-		}
+			// [1인/2인 선택 함] -> 게임 재시작
+			CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+			pApp->m_nGameMode = startDlg.m_nSelectedMode;
 
-		// 6. 게임 완전 초기화 (새 판 시작)
-		OnInitialUpdate();
-	}
-	else
-	{
-		// [선택 취소 / X 버튼 누름]
-		// 메인 화면으로 돌아가지 않고 프로그램을 아예 종료합니다.
-		// (선택 창에서 취소하면 갈 곳이 없으니까요)
-		PostQuitMessage(0);
+			// 게임 화면 다시 보이기 & 초기화
+			if (pMainWnd) pMainWnd->ShowWindow(SW_SHOW);
+			OnInitialUpdate();
+
+			break; // 반복문 탈출 (게임으로 돌아감)
+		}
+		else if (nStartResult == IDCANCEL)
+		{
+			// [메인 화면으로 가기] 버튼을 누름 -> 인트로 화면 띄우기
+			CIntroDlg introDlg;
+
+			// 인트로에서 다시 [게임 시작]을 누르면? -> 루프 돌아서 CStartDlg가 다시 뜸
+			if (introDlg.DoModal() != IDOK)
+			{
+				// 인트로에서도 닫기(X)나 종료를 누르면 -> 진짜 프로그램 종료
+				PostQuitMessage(0);
+				break;
+			}
+			// 인트로에서 OK(게임시작) 누르면 while문 처음으로 돌아가서 CStartDlg 뜸
+		}
 	}
 }
 
@@ -1291,4 +1316,59 @@ void CMy1126View::UpdateScorePreview()
 
 	// 리스트 컨트롤 다시 그리기
 	mlist.Invalidate(FALSE);
+}
+
+void CMy1126View::SaveResultToDB(int myScore, int oppScore)
+{
+	// 1. 로그인 정보 가져오기
+	CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+
+	// ★★★ [수정] 변수 이름을 strUserID 로 통일했습니다! ★★★
+	CString strUserID = pApp->m_strCurrentUserID;
+
+	// 로그인 안 했으면 저장 안 함
+	if (strUserID.IsEmpty()) return;
+
+	// 2. DB 연결
+	CDatabase db;
+	try {
+		// DSN, ID, PW 확인 필수
+		db.OpenEx(_T("DSN=dice;UID=swuser02;PWD=SWUser02;PORT=32065;DATABASE=swuser02;"), CDatabase::noOdbcDialog);
+	}
+	catch (CDBException* e) {
+		e->Delete();
+		return;
+	}
+
+	// 3. 쿼리 만들기
+	CString strQuery;
+
+	if (m_nGameMode == 1)
+	{
+		// 1인용: 여기서도 strUserID 사용
+		strQuery.Format(_T("UPDATE DC SET SCORE = %d WHERE ID = '%s' AND SCORE < %d"), myScore, strUserID, myScore);
+	}
+	else
+	{
+		// 2인용: 여기서도 strUserID 사용
+		if (myScore > oppScore) {
+			strQuery.Format(_T("UPDATE DC SET WINS = WINS + 1 WHERE ID = '%s'"), strUserID);
+		}
+		else if (myScore < oppScore) {
+			strQuery.Format(_T("UPDATE DC SET LOSES = LOSES + 1 WHERE ID = '%s'"), strUserID);
+		}
+		else {
+			db.Close(); return;
+		}
+	}
+
+	// 4. 실행
+	try {
+		db.ExecuteSQL(strQuery);
+	}
+	catch (CDBException* e) {
+		e->Delete();
+	}
+
+	db.Close();
 }

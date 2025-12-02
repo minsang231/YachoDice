@@ -24,6 +24,7 @@ public:
 public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
+	CString m_strCurrentUserID;
 
 // 구현입니다.
 	afx_msg void OnAppAbout();
