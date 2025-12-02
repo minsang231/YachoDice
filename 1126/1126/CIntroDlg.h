@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "afxdialogex.h"
 
-
 // CIntroDlg 대화 상자
 
 class CIntroDlg : public CDialogEx
@@ -9,18 +8,21 @@ class CIntroDlg : public CDialogEx
 	DECLARE_DYNAMIC(CIntroDlg)
 
 public:
-	CIntroDlg(CWnd* pParent = nullptr);   // 표준 생성자입니다.
+	CIntroDlg(CWnd *pParent = nullptr); // 표준 생성자입니다.
 	virtual ~CIntroDlg();
 	CImage m_imgBg;
 	virtual BOOL OnInitDialog();
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_INTRO };
+	enum
+	{
+		IDD = IDD_INTRO
+	};
 #endif
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 지원입니다.
+	virtual void DoDataExchange(CDataExchange *pDX); // DDX/DDV 지원입니다.
 
 	DECLARE_MESSAGE_MAP()
 public:
@@ -32,7 +34,7 @@ public:
 	afx_msg void OnBnClickedButton4();
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedButton3();
-	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);
+	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	afx_msg void OnBnClickedButton2();
 };

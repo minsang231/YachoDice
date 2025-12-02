@@ -1505,6 +1505,25 @@ BOOL CMy1126View::CheckGameOver()
 	// ★★★ [추가] DB에 결과 저장! (이제 에러 안 남) ★★★
 	SaveResultToDB(nScoreMe, nScoreOpp);
 
+	// 2인용일 때만 상대 점수 계산
+	if (m_nGameMode == 2)
+	{
+		strMsg.Format(_T("게임 종료!\n\n🏆 최종 점수: [ %d점 ]\n\n(로그인 시 최고 점수가 갱신됩니다)"), nScoreMe);
+	}
+	else // 2인용 결과창
+	{
+		// 상대 점수 계산
+		for (int i = 0; i < 15; i++)
+		{
+			if (i == 6)
+				continue;
+			nScoreOpp += _ttoi(mlist.GetItemText(i, 2));
+		}
+	}
+
+	// ★★★ [추가] DB에 결과 저장! (이제 에러 안 남) ★★★
+	SaveResultToDB(nScoreMe, nScoreOpp);
+
 	CString strMsg;
 
 	if (m_nGameMode == 1) // 1인용 결과창
@@ -1538,7 +1557,6 @@ BOOL CMy1126View::CheckGameOver()
 
 	return TRUE;
 }
-
 void CMy1126View::OnBnClickedButton4()
 {
 	// 1. 종료 확인 메시지

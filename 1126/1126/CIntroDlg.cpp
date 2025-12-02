@@ -11,44 +11,38 @@
 
 IMPLEMENT_DYNAMIC(CIntroDlg, CDialogEx)
 
-CIntroDlg::CIntroDlg(CWnd* pParent /*=nullptr*/)
-	: CDialogEx(IDD_INTRO, pParent)
-    , m_ID(_T(""))
-    , m_PW(_T(""))
+CIntroDlg::CIntroDlg(CWnd *pParent /*=nullptr*/)
+    : CDialogEx(IDD_INTRO, pParent), m_ID(_T("")), m_PW(_T(""))
 {
-
 }
 
 CIntroDlg::~CIntroDlg()
 {
 }
 
-void CIntroDlg::DoDataExchange(CDataExchange* pDX)
+void CIntroDlg::DoDataExchange(CDataExchange *pDX)
 {
     CDialogEx::DoDataExchange(pDX);
     DDX_Text(pDX, IDC_EDIT1, m_ID);
     DDX_Text(pDX, IDC_EDIT2, m_PW);
 }
 
-
 BEGIN_MESSAGE_MAP(CIntroDlg, CDialogEx)
-	ON_BN_CLICKED(IDC_BTN_HELP, &CIntroDlg::OnBnClickedBtnHelp)
-	ON_BN_CLICKED(IDC_GAME_START, &CIntroDlg::OnBnClickedGameStart)
-    ON_WM_PAINT()
-    ON_BN_CLICKED(IDC_BUTTON4, &CIntroDlg::OnBnClickedButton4)
-    ON_BN_CLICKED(IDC_BUTTON1, &CIntroDlg::OnBnClickedButton1)
-    ON_BN_CLICKED(IDC_BUTTON3, &CIntroDlg::OnBnClickedButton3)
-    ON_WM_CTLCOLOR()
-    ON_BN_CLICKED(IDC_BUTTON2, &CIntroDlg::OnBnClickedButton2)
+ON_BN_CLICKED(IDC_BTN_HELP, &CIntroDlg::OnBnClickedBtnHelp)
+ON_BN_CLICKED(IDC_GAME_START, &CIntroDlg::OnBnClickedGameStart)
+ON_WM_PAINT()
+ON_BN_CLICKED(IDC_BUTTON4, &CIntroDlg::OnBnClickedButton4)
+ON_BN_CLICKED(IDC_BUTTON1, &CIntroDlg::OnBnClickedButton1)
+ON_BN_CLICKED(IDC_BUTTON3, &CIntroDlg::OnBnClickedButton3)
+ON_WM_CTLCOLOR()
+ON_BN_CLICKED(IDC_BUTTON2, &CIntroDlg::OnBnClickedButton2)
 END_MESSAGE_MAP()
-
 
 // CIntroDlg 메시지 처리기
 
 BOOL CIntroDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
-
 
     // =========================================================
     // ★★★ [추가] 배경 이미지 불러오기 ★★★
@@ -59,13 +53,13 @@ BOOL CIntroDlg::OnInitDialog()
         m_imgBg.Load(_T("다이스인트로2.png"));
     }
 
-    return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
+    return TRUE; // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
 void CIntroDlg::OnBnClickedBtnHelp()
 {
-	CString strHelp;
-	strHelp = _T("🎲 [요트 다이스 게임 규칙] 🎲\n\n");
+    CString strHelp;
+    strHelp = _T("🎲 [요트 다이스 게임 규칙] 🎲\n\n");
 
     strHelp += _T("[ 기본 진행 ]\n");
     strHelp += _T("1. 주사위를 최대 3번까지 굴릴 수 있습니다.\n");
@@ -101,7 +95,7 @@ void CIntroDlg::OnBnClickedGameStart()
         // 2. [예]를 눌렀을 때 -> 게임 시작 진행
 
         // ★ 중요: 게스트니까 아이디 변수를 확실하게 비워줍니다.
-        CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+        CMy1126App *pApp = (CMy1126App *)AfxGetApp();
         pApp->m_strCurrentUserID = _T(""); // 빈 문자열 = 게스트
 
         // 다음 단계(모드 선택)로 넘어감
@@ -127,20 +121,20 @@ void CIntroDlg::OnPaint()
     }
 }
 
-
 void CIntroDlg::OnBnClickedButton4()
 {
     // 1. 화면에 적힌 글자를 변수(m_strID, m_strPW)로 가져옴
     UpdateData(TRUE);
 
-    if (m_ID.IsEmpty() || m_PW.IsEmpty()) {
+    if (m_ID.IsEmpty() || m_PW.IsEmpty())
+    {
         AfxMessageBox(_T("아이디와 비밀번호를 입력해주세요."));
         return;
     }
 
     // 2. DB 연결
 
-    CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+    CMy1126App *pApp = (CMy1126App *)AfxGetApp();
 
     // 3. 회원가입 쿼리 (INSERT)
     CString strQuery;
@@ -153,7 +147,7 @@ void CIntroDlg::OnBnClickedButton4()
         pApp->m_db.ExecuteSQL(strQuery);
         AfxMessageBox(_T("회원가입 성공! 이제 로그인 해주세요."));
     }
-    catch (CDBException* e)
+    catch (CDBException *e)
     {
         // ★★★ [수정] 거짓말하지 말고 진짜 에러 내용을 보여줘! ★★★
         CString msg;
@@ -164,20 +158,20 @@ void CIntroDlg::OnBnClickedButton4()
     }
 }
 
-
 void CIntroDlg::OnBnClickedButton1()
 {
     // 1. 화면 값 가져오기
     UpdateData(TRUE);
-    CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+    CMy1126App *pApp = (CMy1126App *)AfxGetApp();
 
-    if (m_ID.IsEmpty() || m_PW.IsEmpty()) {
+    if (m_ID.IsEmpty() || m_PW.IsEmpty())
+    {
         AfxMessageBox(_T("아이디와 비밀번호를 입력해주세요."));
         return;
     }
 
     // 2. DB 연결
-    //if (ConnectDB() == FALSE) return;
+    // if (ConnectDB() == FALSE) return;
 
     // 3. 로그인 쿼리 (SELECT)
     CString strQuery;
@@ -195,8 +189,8 @@ void CIntroDlg::OnBnClickedButton1()
             AfxMessageBox(_T("로그인 성공! 게임을 시작합니다."));
 
             // ★ 중요: 로그인이 성공했으므로 다이얼로그를 닫고 게임으로 넘어감
-           
-            pApp->m_strCurrentUserID = m_ID;  // <--- 이게 있어야 함
+
+            pApp->m_strCurrentUserID = m_ID; // <--- 이게 있어야 함
 
             EndDialog(IDOK);
         }
@@ -206,13 +200,12 @@ void CIntroDlg::OnBnClickedButton1()
         }
         rs.Close();
     }
-    catch (CDBException* e)
+    catch (CDBException *e)
     {
         AfxMessageBox(e->m_strError);
         e->Delete();
     }
 }
-
 
 void CIntroDlg::OnBnClickedButton3()
 {
@@ -222,35 +215,32 @@ void CIntroDlg::OnBnClickedButton3()
     dlg.DoModal();
 }
 
-
-HBRUSH CIntroDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+HBRUSH CIntroDlg::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 {
     HBRUSH hbr = CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 
     if (nCtlColor == CTLCOLOR_STATIC)
     {
-        pDC->SetBkMode(TRANSPARENT); // 배경 투명
-        pDC->SetTextColor(RGB(255, 255, 255)); // 글씨 색상 (흰색 추천)
+        pDC->SetBkMode(TRANSPARENT);               // 배경 투명
+        pDC->SetTextColor(RGB(255, 255, 255));     // 글씨 색상 (흰색 추천)
         return (HBRUSH)GetStockObject(NULL_BRUSH); // 투명 브러시 반환
     }
 
     return hbr;
 }
 
-
-BOOL CIntroDlg::PreTranslateMessage(MSG* pMsg)
+BOOL CIntroDlg::PreTranslateMessage(MSG *pMsg)
 {
     // 키보드를 눌렀는데, 그게 '엔터(Enter)' 키라면?
     if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
     {
         // 로그인 버튼 함수 강제 호출
         OnBnClickedButton1(); // (로그인 버튼 함수 이름)
-        return TRUE; // "내가 처리했으니 윈도우는 신경 꺼" (삑 소리 방지)
+        return TRUE;          // "내가 처리했으니 윈도우는 신경 꺼" (삑 소리 방지)
     }
 
     return CDialogEx::PreTranslateMessage(pMsg);
 }
-
 
 void CIntroDlg::OnBnClickedButton2()
 {
