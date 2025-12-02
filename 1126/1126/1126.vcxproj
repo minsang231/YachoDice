@@ -186,6 +186,8 @@
     <ClInclude Include="1126.h" />
     <ClInclude Include="1126Doc.h" />
     <ClInclude Include="1126View.h" />
+    <ClInclude Include="CIntroDlg.h" />
+    <ClInclude Include="CRankDlg.h" />
     <ClInclude Include="CStartDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainFrm.h" />
@@ -197,6 +199,8 @@
     <ClCompile Include="1126.cpp" />
     <ClCompile Include="1126Doc.cpp" />
     <ClCompile Include="1126View.cpp" />
+    <ClCompile Include="CIntroDlg.cpp" />
+    <ClCompile Include="CRankDlg.cpp" />
     <ClCompile Include="CStartDlg.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="pch.cpp">
