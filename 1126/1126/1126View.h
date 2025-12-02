@@ -114,6 +114,7 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnClickList2(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedButton4();
+	void SaveResultToDB(int myScore, int oppScore);
 };
 
 #ifndef _DEBUG  // 1126View.cpp의 디버그 버전

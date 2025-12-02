@@ -12,6 +12,7 @@
 #include "1126Doc.h"
 #include "1126View.h"
 #include "CStartDlg.h"
+#include "CIntroDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -62,7 +63,7 @@ CMy1126App theApp;
 BOOL CMy1126App::InitInstance()
 {
 	// 애플리케이션 매니페스트가 ComCtl32.dll 버전 6 이상을 사용하여 비주얼 스타일을
-	// 사용하도록 지정하는 경우, Windows XP 상에서 반드시 InitCommonControlsEx()가 필요합니다. 
+	// 사용하도록 지정하는 경우, Windows XP 상에서 반드시 InitCommonControlsEx()가 필요합니다.
 	// InitCommonControlsEx()를 사용하지 않으면 창을 만들 수 없습니다.
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
@@ -98,20 +99,43 @@ BOOL CMy1126App::InitInstance()
 	SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
 	LoadStdProfileSettings(4);  // MRU를 포함하여 표준 INI 파일 옵션을 로드합니다.
 
-	// =========================================================
-	// ★★★ [추가] 여기서 시작 메뉴 띄우기! ★★★
-	// =========================================================
-	CStartDlg dlg;
 
-	// 다이얼로그를 띄우고, OK(버튼 클릭)가 아니면(취소/X누름) 프로그램 종료
-	if (dlg.DoModal() != IDOK)
+	// =========================================================
+	// ★★★ [수정] 다이얼로그 실행 순서 (무한 반복 구조) ★★★
+	// 순서: 1. 인트로(CIntroDlg) <-> 2. 모드선택(CStartDlg) -> 3. 게임시작
+	// =========================================================
+
+	while (TRUE)
 	{
-		return FALSE;
-	}
+		// 1. 인트로 화면 띄우기 (로그인 / 게임 시작 / 도움말)
+		CIntroDlg introDlg;
 
-	// 선택한 모드 저장 (App 클래스 멤버변수에 저장)
-	m_nGameMode = dlg.m_nSelectedMode;
+		// 인트로에서 [종료]하거나 X를 누르면 -> 프로그램 완전 종료
+		if (introDlg.DoModal() != IDOK)
+		{
+			return FALSE;
+		}
+
+		// 2. 모드 선택 화면 띄우기 (1인용 / 2인용)
+		// (여기까지 왔다는 건 인트로에서 '게임 시작'을 눌렀다는 뜻)
+		CStartDlg startDlg;
+		INT_PTR nResult = startDlg.DoModal();
+
+		if (nResult == IDOK)
+		{
+			// [모드 선택 완료] -> 반복문 탈출 -> 게임 화면(MainFrame)으로 이동
+			m_nGameMode = startDlg.m_nSelectedMode; // 선택한 모드 저장
+			break;
+		}
+		else if (nResult == IDCANCEL)
+		{
+			// [메인 화면으로 가기] 버튼을 누름 (또는 취소)
+			// -> break 하지 않고 continue 하므로 다시 while문 처음(인트로)으로 돌아감
+			continue;
+		}
+	}
 	// =========================================================
+
 
 	// 애플리케이션의 문서 템플릿을 등록합니다.  문서 템플릿은
 	//  문서, 프레임 창 및 뷰 사이의 연결 역할을 합니다.
@@ -129,7 +153,6 @@ BOOL CMy1126App::InitInstance()
 	// 표준 셸 명령, DDE, 파일 열기에 대한 명령줄을 구문 분석합니다.
 	CCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
-
 
 
 	// 명령줄에 지정된 명령을 디스패치합니다.

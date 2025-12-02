@@ -11,5 +11,6 @@
 #include "framework.h"
 
 #include <afxcmn.h>
+#include <afxdb.h>
 
 #endif //PCH_H
