@@ -17,6 +17,9 @@
 #include <afxdb.h> // ODBC 데이터베이스 클래스
 #include "CStartDlg.h"
 #include "CIntroDlg.h"
+#include <mmsystem.h> // ★★★ [추가] PlaySound 함수 사용을 위한 헤더
+
+#pragma comment(lib, "winmm.lib") // ★★★ [추가] 사운드 라이브러리 링크
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -257,8 +260,6 @@ void CMy1126View::OnInitialUpdate()
 	// 게임 시작 준비 (첫 턴 세팅)
 	NextTurn();
 	mlist.ShowScrollBar(SB_VERT, FALSE);
-	SetTimer(1, 30, NULL);
-	SetTimer(2, 1000, NULL);
 }
 
 // CMy1126View 인쇄
@@ -323,60 +324,77 @@ void CMy1126View::OnNMCustomdrawList2(NMHDR *pNMHDR, LRESULT *pResult)
 
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
 	{
-		// [1] 배경색 & 글자색 칠하기 (기존 코드 유지)
+		// [1] 배경색 & 글자색 칠하기
 		int nRow = (int)pLVCD->nmcd.dwItemSpec;
 		int nCol = pLVCD->iSubItem;
 
-		// 배경색
-		if (nRow == 6 || nRow == 7) // 합계/보너스
+		// -------------------------------------------------------
+		// 1. 배경색 결정 우선순위 로직
+		// -------------------------------------------------------
+
+		// [우선순위 1] 합계(6), 보너스(7) 행은 무조건 진한 회색
+		if (nRow == 6 || nRow == 7)
 		{
 			pLVCD->clrTextBk = RGB(100, 110, 120);
 		}
 		else
 		{
-			// ★★★ [추가] 현재 턴인 플레이어의 줄을 살짝 밝게 표시 ★★★
-			// 항목(0)은 그대로,
-			// 현재 플레이어가 0(나)이면 1번 컬럼, 1(상대)이면 2번 컬럼 강조
-			if (nCol == m_nCurrentPlayer + 1)
+			// ★★★ [추가된 로직] 우선순위 2: 이미 점수가 확정된 칸은 '연한 핑크색' ★★★
+			BOOL bIsFixedCell = FALSE;
+			if (nCol == 1 && m_bScoreFixed[0][nRow])
+				bIsFixedCell = TRUE; // 1P 열이고 확정됨
+			else if (nCol == 2 && m_bScoreFixed[1][nRow])
+				bIsFixedCell = TRUE; // 2P 열이고 확정됨
+
+			if (bIsFixedCell)
 			{
-				// ★★★ [추가] 점수를 얻을 수 있는 족보는 연두색 하이라이트! ★★★
-				if (m_bCanScore[nRow] == TRUE &&
-					m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE)
+				// 요청하신 연한 핑크색 (색감은 숫자를 조절해서 바꾸셔도 됩니다)
+				pLVCD->clrTextBk = RGB(255, 225, 235);
+			}
+			// [우선순위 3] 확정이 안 된 칸 중, 현재 플레이어의 턴일 때 하이라이트
+			else if (nCol == m_nCurrentPlayer + 1)
+			{
+				// 점수를 얻을 수 있는 족보는 연두색
+				if (m_bCanScore[nRow] == TRUE)
 				{
-					pLVCD->clrTextBk = RGB(144, 238, 144); // 연두색 (Light Green)
+					pLVCD->clrTextBk = RGB(144, 238, 144); // 연두색
 				}
-				// ★★★ [추가] 0점이지만 선택 가능한 칸은 연한 노란색 ★★★
-				else if (m_nPreviewScores[nRow] == 0 &&
-						 m_bScoreFixed[m_nCurrentPlayer][nRow] == FALSE &&
-						 m_bRolled == TRUE)
+				// 0점이지만 선택 가능한 칸은 연한 노란색
+				else if (m_nPreviewScores[nRow] == 0 && m_bRolled == TRUE)
 				{
 					pLVCD->clrTextBk = RGB(255, 255, 200); // 연한 노란색
 				}
-				// 기본 현재 플레이어 컨럼 색상
+				// 그 외 기본 현재 플레이어 칸 색상
 				else
 				{
 					pLVCD->clrTextBk = RGB(255, 250, 205); // 레몬 쉬폰색
 				}
 			}
+			// [우선순위 4] 나머지 (상대방 칸이거나 항목 칸)
 			else
 			{
 				pLVCD->clrTextBk = RGB(240, 235, 230); // 기본 베이지색
 			}
 		}
 
-		// 글자색
+		// -------------------------------------------------------
+		// 2. 글자색 결정
+		// -------------------------------------------------------
 		if (nRow == 6 || nRow == 7)
 		{
+			// 합계/보너스 행은 흰색 글씨
 			pLVCD->clrText = RGB(255, 255, 255);
 		}
 		else
 		{
-			if (nCol == 0)
-				pLVCD->clrText = RGB(0, 0, 0);
-			else if (nCol == 1)
-				pLVCD->clrText = m_bScoreFixed[0][nRow] ? RGB(0, 0, 0) : RGB(160, 160, 160);
-			else if (nCol == 2)
-				pLVCD->clrText = m_bScoreFixed[1][nRow] ? RGB(0, 0, 0) : RGB(160, 160, 160);
+			// 나머지는 검은색 글씨 (확정 여부와 상관없이 잘 보이게 검은색 통일)
+			pLVCD->clrText = RGB(0, 0, 0);
+
+			/* 기존 코드 주석 처리: 핑크색 배경에 회색 글씨는 잘 안 보일 수 있어서 검은색으로 통일했습니다.
+			if (nCol == 0) pLVCD->clrText = RGB(0, 0, 0);
+			else if (nCol == 1) pLVCD->clrText = m_bScoreFixed[0][nRow] ? RGB(0, 0, 0) : RGB(160, 160, 160);
+			else if (nCol == 2) pLVCD->clrText = m_bScoreFixed[1][nRow] ? RGB(0, 0, 0) : RGB(160, 160, 160);
+			*/
 		}
 
 		*pResult = CDRF_NEWFONT | CDRF_NOTIFYPOSTPAINT;
@@ -810,28 +828,22 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 	// ★★★ [핵심 수정] 타이머 2: 깜빡임 방지를 위해 텍스트 영역만 무효화 ★★★
 	if (nIDEvent == 2)
 	{
-		// 시간이 남아있으면 1초씩 뺌
-		if (m_nLeftTime > 0)
+		// ★ [핵심] 주사위를 최소 한 번 굴렸을 때(>0) && 시간이 남았을 때만 시간 감소
+		if (m_nRollCount > 0 && m_nLeftTime > 0)
 		{
 			m_nLeftTime--;
 
-			// 시간이 0이 되면? (강제로 턴을 넘기거나 메시지 띄우기)
+			// 시간이 0이 되면? (시간 초과 처리)
 			if (m_nLeftTime == 0)
 			{
-				// ★★★ [추가] 시간 초과 시 자동으로 점수 넣기 ★★★
-
-				// 1. 점수를 넣지 않은 칸들의 인덱스를 저장할 배열
-				int nEmptySlots[13]; // 최대 13개 (합계/보너스 제외)
+				// 1. 빈 슬롯 찾기
+				int nEmptySlots[13];
 				int nEmptyCount = 0;
 
-				// 2. 점수를 넣지 않은 칸들 찾기
 				for (int i = 0; i < 15; i++)
 				{
-					// 합계(6), 보너스(7)는 건너뛰기
 					if (i == 6 || i == 7)
 						continue;
-
-					// 현재 플레이어가 아직 점수를 넣지 않은 칸 찾기
 					if (m_bScoreFixed[m_nCurrentPlayer][i] == FALSE)
 					{
 						nEmptySlots[nEmptyCount] = i;
@@ -839,14 +851,12 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 					}
 				}
 
-				// 3. 빈 칸이 있으면 랜덤으로 하나 선택
+				// 2. 랜덤 선택 및 점수 등록
 				if (nEmptyCount > 0)
 				{
-					// 랜덤 인덱스 선택
 					int nRandomIndex = rand() % nEmptyCount;
 					int nSelectedRow = nEmptySlots[nRandomIndex];
 
-					// 4. 선택된 칸에 점수 넣기
 					int nScore = GetScore(nSelectedRow);
 					CString strScore;
 					strScore.Format(_T("%d"), nScore);
@@ -854,16 +864,12 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 					int nCol = m_nCurrentPlayer + 1;
 					mlist.SetItemText(nSelectedRow, nCol, strScore);
 
-					// 확정 플래그 설정
 					m_bScoreFixed[m_nCurrentPlayer][nSelectedRow] = TRUE;
 
-					// 요트(50점) 확정 시 보너스 플래그 켜기
 					if (nSelectedRow == 13 && nScore == 50)
-					{
 						m_bYachtFixed[m_nCurrentPlayer] = TRUE;
-					}
 
-					// 5. 상단 합계(Sum) 및 보너스 자동 계산
+					// 3. 합계 업데이트
 					int nSubTotal = 0;
 					for (int i = 0; i <= 5; i++)
 					{
@@ -873,26 +879,21 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 							nSubTotal += _ttoi(strVal);
 						}
 					}
-
-					// 합계 업데이트
 					CString strSum;
 					strSum.Format(_T("%d / 63"), nSubTotal);
 					mlist.SetItemText(6, nCol, strSum);
 
-					// 보너스 업데이트
 					if (nSubTotal >= 63)
 						mlist.SetItemText(7, nCol, _T("35"));
 					else
 						mlist.SetItemText(7, nCol, _T("0"));
 
-					// 6. 게임 종료 체크 및 턴 넘기기
+					// 4. 게임 종료 체크 및 턴 넘기기
 					if (CheckGameOver() == FALSE)
 					{
-						// 2인용 모드일 때만 플레이어 교체
 						if (m_nGameMode == 2)
 						{
 							m_nCurrentPlayer = 1 - m_nCurrentPlayer;
-
 							CString strMsg;
 							strMsg.Format(_T("시간 초과! 자동으로 점수가 입력되었습니다.\n\n%s의 차례입니다!"),
 										  m_nCurrentPlayer == 0 ? _T("당신(나)") : _T("상대방"));
@@ -902,20 +903,14 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 						{
 							AfxMessageBox(_T("시간 초과! 자동으로 점수가 입력되었습니다."));
 						}
-
 						NextTurn();
 					}
 				}
 			}
 
-			// ★★★ [핵심 수정] 전체 화면 대신 텍스트 영역만 무효화 ★★★
-			// 이렇게 하면 리스트뷰와 버튼이 깜빡이지 않습니다!
-
+			// ★★★ 시간 텍스트 갱신 (상단부만 다시 그리기) ★★★
 			CRect rectClient;
 			GetClientRect(&rectClient);
-
-			// 상단 텍스트 영역만 무효화 (플레이어 표시 + 타이머)
-			// y=0 ~ y=60 정도의 상단 영역만 다시 그림
 			CRect rectTextArea(0, 0, rectClient.right, 60);
 			InvalidateRect(&rectTextArea, FALSE);
 		}
@@ -992,19 +987,18 @@ void CMy1126View::OnDraw(CDC *pDC)
 	}
 	else // 2인용
 	{
-		if (m_nCurrentPlayer == 0) // 내 차례 (왼쪽)
-		{
-			if (strUserID.IsEmpty())
-				strTurn = _T("<<< Player 1 (나) <<<");
-			else
-				strTurn.Format(_T("<<< %s (나) <<<"), strUserID); // 내 아이디 표시
+		CString strP2ID = pApp->m_strPlayer2ID; // 상대방 ID 가져오기
 
-			clrText = RGB(255, 215, 0); // 금색
-		}
-		else // 상대방 차례 (오른쪽)
+		if (m_nCurrentPlayer == 0) // 내 차례
 		{
-			strTurn = _T(">>> Guest (상대) >>>"); // 상대는 무조건 게스트
-			clrText = RGB(100, 100, 255);		  // 파란색
+			strTurn.Format(_T("<<< %s (나) <<<"), strUserID);
+			clrText = RGB(255, 215, 0);
+		}
+		else // 상대방 차례
+		{
+			// ★ Guest 대신 실제 ID 표시
+			strTurn.Format(_T(">>> %s (상대) >>>"), strP2ID);
+			clrText = RGB(100, 100, 255);
 		}
 	}
 
@@ -1068,6 +1062,12 @@ void CMy1126View::OnBnClickedButton3()
 	if (m_bIsAnimating)
 		return;
 
+	if (m_nRollCount == 0)
+	{
+		SetTimer(1, 30, NULL);
+		SetTimer(2, 1000, NULL);
+	}
+
 	// ★★★ [추가] 3번 다 썼으면 경고하고 리턴 ★★★
 	if (m_nRollCount >= 3)
 	{
@@ -1079,6 +1079,10 @@ void CMy1126View::OnBnClickedButton3()
 	m_bIsAnimating = TRUE;
 	m_bRolled = TRUE; // [추가] 굴렸음! 이제 점수 등록 가능!
 	m_nAniFrame = 90; // 애니메이션 시간 늘림 (30 -> 90)
+
+	// ★★★ [추가] 주사위 굴리기 사운드 재생 ★★★
+	// 방법 1: 외부 WAV 파일 사용 (dice_roll.wav 파일이 실행 파일과 같은 폴더에 있어야 함)
+	PlaySound(_T("Rolling_dice.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
 
 	// 3. 굴리기 횟수 증가 및 UI 업데이트
 	m_nRollCount++;
@@ -1502,8 +1506,7 @@ BOOL CMy1126View::CheckGameOver()
 		}
 	}
 
-	// ★★★ [추가] DB에 결과 저장! (이제 에러 안 남) ★★★
-	SaveResultToDB(nScoreMe, nScoreOpp);
+	CString strMsg;
 
 	// 2인용일 때만 상대 점수 계산
 	if (m_nGameMode == 2)
@@ -1523,8 +1526,6 @@ BOOL CMy1126View::CheckGameOver()
 
 	// ★★★ [추가] DB에 결과 저장! (이제 에러 안 남) ★★★
 	SaveResultToDB(nScoreMe, nScoreOpp);
-
-	CString strMsg;
 
 	if (m_nGameMode == 1) // 1인용 결과창
 	{
@@ -1566,6 +1567,9 @@ void CMy1126View::OnBnClickedButton4()
 		return; // '아니요' 누르면 게임 계속
 	}
 
+	KillTimer(1);
+	KillTimer(2);
+
 	// 2. 메인 윈도우(게임 화면) 숨기기
 	// 이렇게 하면 화면에서 게임이 싹 사라집니다.
 	CWnd *pMainWnd = AfxGetMainWnd();
@@ -1573,6 +1577,9 @@ void CMy1126View::OnBnClickedButton4()
 	{
 		pMainWnd->ShowWindow(SW_HIDE);
 	}
+
+	CMy1126App *pApp = (CMy1126App *)AfxGetApp();
+	pApp->m_strPlayer2ID = _T("");
 
 	while (TRUE)
 	{
@@ -1588,7 +1595,12 @@ void CMy1126View::OnBnClickedButton4()
 
 			// 게임 화면 다시 보이기 & 초기화
 			if (pMainWnd)
+			{
+				// ★★★ [수정] 윈도우를 다시 표시하고 작업표시줄 아이콘 복원 ★★★
 				pMainWnd->ShowWindow(SW_SHOW);
+				pMainWnd->SetForegroundWindow(); // 윈도우를 포그라운드로 가져옴
+				pMainWnd->UpdateWindow();		 // 윈도우 업데이트로 작업표시줄 아이콘 복원
+			}
 			OnInitialUpdate();
 
 			break; // 반복문 탈출 (게임으로 돌아감)
@@ -1666,46 +1678,82 @@ void CMy1126View::UpdateScorePreview()
 
 void CMy1126View::SaveResultToDB(int myScore, int oppScore)
 {
-	// 1. 로그인 정보 가져오기
 	CMy1126App *pApp = (CMy1126App *)AfxGetApp();
+	CString strPlayer1 = pApp->m_strCurrentUserID; // 나
+	CString strPlayer2 = pApp->m_strPlayer2ID;	   // 상대방
 
-	// ★★★ [수정] 변수 이름을 strUserID 로 통일했습니다! ★★★
-	CString strUserID = pApp->m_strCurrentUserID;
-
-	// 로그인 안 했으면 저장 안 함
-	if (strUserID.IsEmpty())
+	// 로그인 안했으면 저장 안 함
+	if (strPlayer1.IsEmpty())
 		return;
 
-	// 2. DB 연결
-
-	// 3. 쿼리 만들기
-	CString strQuery;
-
+	// =========================================================
+	// 1. [1인용] 내 점수(Score)만 갱신 (기존 코드 유지)
+	// =========================================================
 	if (m_nGameMode == 1)
 	{
-		// 1인용: 여기서도 strUserID 사용
-		strQuery.Format(_T("UPDATE DC SET SCORE = %d WHERE ID = '%s' AND SCORE < %d"), myScore, strUserID, myScore);
+		CString strQuery;
+		strQuery.Format(_T("UPDATE DC SET SCORE = %d WHERE ID = '%s' AND SCORE < %d"), myScore, strPlayer1, myScore);
+		pApp->m_db.ExecuteSQL(strQuery);
 	}
-	else
+	// =========================================================
+	// 2. [2인용] 나(Player1)와 상대방(Player2) 승/패 모두 갱신
+	// =========================================================
+	else if (m_nGameMode == 2 && !strPlayer2.IsEmpty())
 	{
-		// 2인용: 여기서도 strUserID 사용
-		if (myScore > oppScore)
+		CString queryP1, queryP2;
+
+		if (myScore > oppScore) // 내가 이김
 		{
-			strQuery.Format(_T("UPDATE DC SET WINS = WINS + 1 WHERE ID = '%s'"), strUserID);
+			// 나: 승리 + 1
+			queryP1.Format(_T("UPDATE DC SET WINS = WINS + 1 WHERE ID = '%s'"), strPlayer1);
+			// 상대: 패배 + 1
+			queryP2.Format(_T("UPDATE DC SET LOSES = LOSES + 1 WHERE ID = '%s'"), strPlayer2);
 		}
-		else if (myScore < oppScore)
+		else if (myScore < oppScore) // 내가 짐
 		{
-			strQuery.Format(_T("UPDATE DC SET LOSES = LOSES + 1 WHERE ID = '%s'"), strUserID);
+			// 나: 패배 + 1
+			queryP1.Format(_T("UPDATE DC SET LOSES = LOSES + 1 WHERE ID = '%s'"), strPlayer1);
+			// 상대: 승리 + 1
+			queryP2.Format(_T("UPDATE DC SET WINS = WINS + 1 WHERE ID = '%s'"), strPlayer2);
+		}
+		else // 무승부 (보통 아무것도 안 하거나, 무승부 컬럼이 있다면 업데이트)
+		{
+			return;
+		}
+
+		try
+		{
+			// 두 쿼리 실행
+			pApp->m_db.ExecuteSQL(queryP1);
+			pApp->m_db.ExecuteSQL(queryP2);
+		}
+		catch (CDBException *e)
+		{
+			// 에러 처리 (필요시)
+			e->Delete();
+		}
+	}
+}
+
+BOOL CMy1126View::PreTranslateMessage(MSG *pMsg)
+{
+	// 키보드 누름 메시지인지 확인
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		// 1. ESC 키 차단 (게임 종료 방지)
+		if (pMsg->wParam == VK_ESCAPE)
+		{
+			return TRUE; // "내가 처리했으니 윈도우는 신경 꺼라" (무시됨)
+		}
+
+		// 2. Enter 키 차단 (의도치 않은 버튼 클릭 방지)
+		// 채팅 기능이 없다면 막는 게 좋습니다.
+		if (pMsg->wParam == VK_RETURN)
+		{
+			return TRUE; // Enter 키 무시
 		}
 	}
 
-	// 4. 실행
-	try
-	{
-		pApp->m_db.ExecuteSQL(strQuery);
-	}
-	catch (CDBException *e)
-	{
-		e->Delete();
-	}
+	// 다른 키들은 원래대로 처리하도록 부모 클래스에게 넘김
+	return CFormView::PreTranslateMessage(pMsg);
 }

@@ -5,7 +5,7 @@
 #include "1126.h"
 #include "afxdialogex.h"
 #include "CStartDlg.h"
-
+#include "CPlayer2LoginDlg.h"
 
 // CStartDlg 대화 상자
 
@@ -59,8 +59,24 @@ void CStartDlg::OnBnClickedButton1()
 
 void CStartDlg::OnBnClickedButton2()
 {
+	CMy1126App* pApp = (CMy1126App*)AfxGetApp();
+
+	// ★★★ [수정] 로그인한 경우에만 상대방 ID 입력 창 띄우기 ★★★
+	if (!pApp->m_strCurrentUserID.IsEmpty())
+	{
+		CPlayer2LoginDlg dlg;
+
+		// 창을 띄웠는데 '취소'를 누르면 게임 시작 안 하고 리턴
+		if (dlg.DoModal() != IDOK)
+		{
+			return;
+		}
+		// '확인'을 누르면 아래로 내려가서 게임 시작
+	}
+
+	// 게스트면 위 if문을 건너뛰고 바로 여기로 옴 -> 즉시 게임 시작
 	m_nSelectedMode = 2;
-	OnOK(); // 다이얼로그 닫고 성공 리턴
+	CDialogEx::OnOK();
 }
 
 
@@ -88,4 +104,14 @@ void CStartDlg::OnPaint()
 
 		m_imgBg.Draw(dc.m_hDC, 0, 0, rect.Width(), rect.Height());
 	}
+}
+
+BOOL CStartDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_ESCAPE) return TRUE; // ESC 무시
+		if (pMsg->wParam == VK_RETURN) return TRUE; // Enter 무시
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
 }

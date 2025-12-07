@@ -102,6 +102,7 @@ public:
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext &dc) const;
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 #endif
 
 protected:

@@ -112,7 +112,7 @@ void CRankDlg::LoadRankings()
 	// =========================================================
 	// [2] 승리 랭킹 조회 (WINS 높은 순서대로 10명)
 	// =========================================================
-	strQuery = _T("SELECT ID, WINS FROM DC ORDER BY WINS DESC LIMIT 10");
+	strQuery = _T("SELECT ID, WINS,LOSES FROM DC ORDER BY WINS DESC LIMIT 10");
 
 	try
 	{

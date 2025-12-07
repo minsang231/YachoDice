@@ -25,6 +25,8 @@ public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	CString m_strCurrentUserID;
+	CString m_strPlayer2ID;
+
 	CDatabase m_db;
 	// 구현입니다.
 	afx_msg void OnAppAbout();

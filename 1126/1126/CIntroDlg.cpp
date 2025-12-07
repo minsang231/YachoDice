@@ -149,10 +149,24 @@ void CIntroDlg::OnBnClickedButton4()
     }
     catch (CDBException *e)
     {
-        // ★★★ [수정] 거짓말하지 말고 진짜 에러 내용을 보여줘! ★★★
-        CString msg;
-        msg.Format(_T("에러 발생!\n\n진짜 이유: %s"), e->m_strError);
-        AfxMessageBox(msg);
+        // ★★★ [수정] 에러 메시지 필터링 ★★★
+
+        // 1. 에러 메시지를 문자열로 가져옴
+        CString strError = e->m_strError;
+
+        // 2. "Duplicate" (중복) 라는 단어가 포함되어 있는지 검사
+        if (strError.Find(_T("Duplicate")) != -1)
+        {
+            // 중복 에러라면 친절한 메시지 출력
+            AfxMessageBox(_T("이미 존재하는 아이디입니다.\n다른 아이디를 사용해주세요."));
+        }
+        else
+        {
+            // 그 외의 다른 에러라면 원래 에러 내용 출력 (디버깅용)
+            CString msg;
+            msg.Format(_T("회원가입 실패 (DB 오류):\n%s"), strError);
+            AfxMessageBox(msg);
+        }
 
         e->Delete();
     }
@@ -231,12 +245,20 @@ HBRUSH CIntroDlg::OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor)
 
 BOOL CIntroDlg::PreTranslateMessage(MSG *pMsg)
 {
-    // 키보드를 눌렀는데, 그게 '엔터(Enter)' 키라면?
-    if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN)
+    if (pMsg->message == WM_KEYDOWN)
     {
-        // 로그인 버튼 함수 강제 호출
-        OnBnClickedButton1(); // (로그인 버튼 함수 이름)
-        return TRUE;          // "내가 처리했으니 윈도우는 신경 꺼" (삑 소리 방지)
+        // 1. ★★★ [추가] ESC 키 차단 (창 꺼짐 방지) ★★★
+        if (pMsg->wParam == VK_ESCAPE)
+        {
+            return TRUE; // "내가 처리했으니 닫지 마라" (무시됨)
+        }
+
+        // 2. 엔터(Enter) 키 처리 (로그인 버튼 실행)
+        if (pMsg->wParam == VK_RETURN)
+        {
+            OnBnClickedButton1(); // 로그인 버튼 핸들러 호출
+            return TRUE;          // 삑 소리 방지
+        }
     }
 
     return CDialogEx::PreTranslateMessage(pMsg);
