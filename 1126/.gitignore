@@ -4,7 +4,7 @@
 *.user
 Debug/
 Release/
-x64/
+
 
 # 빌드 결과물
 
