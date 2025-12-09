@@ -61,9 +61,10 @@ void CStartDlg::OnBnClickedButton2()
 {
 	CMy1126App* pApp = (CMy1126App*)AfxGetApp();
 
-	// ★★★ [수정] 로그인한 경우에만 상대방 ID 입력 창 띄우기 ★★★
+	// ★★★ [수정] 로그인한 경우에만 두 번째 플레이어 로그인 창 띄우기 ★★★
 	if (!pApp->m_strCurrentUserID.IsEmpty())
 	{
+		// 첫 번째 플레이어가 로그인되어 있으면 두 번째 플레이어 로그인 창 띄우기
 		CPlayer2LoginDlg dlg;
 
 		// 창을 띄웠는데 '취소'를 누르면 게임 시작 안 하고 리턴
@@ -71,10 +72,15 @@ void CStartDlg::OnBnClickedButton2()
 		{
 			return;
 		}
-		// '확인'을 누르면 아래로 내려가서 게임 시작
+	}
+	else
+	{
+		// ★★★ [추가] 게스트 모드일 경우 바로 2인 게임 시작 (두 명 모두 게스트) ★★★
+		// Player 2 ID도 빈 문자열로 유지 (게스트)
+		pApp->m_strPlayer2ID = _T("");
 	}
 
-	// 게스트면 위 if문을 건너뛰고 바로 여기로 옴 -> 즉시 게임 시작
+	// 두 번째 플레이어 로그인 성공 또는 게스트 모드 -> 게임 시작
 	m_nSelectedMode = 2;
 	CDialogEx::OnOK();
 }

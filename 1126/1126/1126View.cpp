@@ -19,7 +19,7 @@
 #include "CIntroDlg.h"
 #include <mmsystem.h> // ★★★ [추가] PlaySound 함수 사용을 위한 헤더
 
-#pragma comment(lib, "winmm.lib") // ★★★ [추가] 사운드 라이브러리 링크
+#pragma comment(lib, "Winmm.lib") // ★★★ [추가] 사운드 라이브러리 링크
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -894,9 +894,28 @@ void CMy1126View::OnTimer(UINT_PTR nIDEvent)
 						if (m_nGameMode == 2)
 						{
 							m_nCurrentPlayer = 1 - m_nCurrentPlayer;
+
+							// ★★★ [수정] 플레이어 이름 표시 ★★★
+							CMy1126App *pApp = (CMy1126App *)AfxGetApp();
 							CString strMsg;
-							strMsg.Format(_T("시간 초과! 자동으로 점수가 입력되었습니다.\n\n%s의 차례입니다!"),
-										  m_nCurrentPlayer == 0 ? _T("당신(나)") : _T("상대방"));
+
+							if (m_nCurrentPlayer == 0)
+							{
+								// Player 1의 턴
+								if (pApp->m_strCurrentUserID.IsEmpty())
+									strMsg = _T("시간 초과! 자동으로 점수가 입력되었습니다.\n\nPlayer 1 (Guest) 의 차례입니다!");
+								else
+									strMsg.Format(_T("시간 초과! 자동으로 점수가 입력되었습니다.\n\n%s 님의 차례입니다!"), pApp->m_strCurrentUserID);
+							}
+							else
+							{
+								// Player 2의 턴
+								if (pApp->m_strPlayer2ID.IsEmpty())
+									strMsg = _T("시간 초과! 자동으로 점수가 입력되었습니다.\n\nPlayer 2 (Guest) 의 차례입니다!");
+								else
+									strMsg.Format(_T("시간 초과! 자동으로 점수가 입력되었습니다.\n\n%s 님의 차례입니다!"), pApp->m_strPlayer2ID);
+							}
+
 							AfxMessageBox(strMsg);
 						}
 						else
@@ -989,16 +1008,23 @@ void CMy1126View::OnDraw(CDC *pDC)
 	{
 		CString strP2ID = pApp->m_strPlayer2ID; // 상대방 ID 가져오기
 
-		if (m_nCurrentPlayer == 0) // 내 차례
+		if (m_nCurrentPlayer == 0) // Player 1 차례 (첫 번째 로그인 사용자)
 		{
-			strTurn.Format(_T("<<< %s (나) <<<"), strUserID);
-			clrText = RGB(255, 215, 0);
+			// ★★★ [수정] 게스트일 경우 "Player 1 (Guest)" 형식으로 표시 ★★★
+			if (strUserID.IsEmpty())
+				strTurn = _T("<<< Player 1 (Guest) 의 턴 <<<");
+			else
+				strTurn.Format(_T("<<< %s 님의 턴 (Player 1) <<<"), strUserID);
+			clrText = RGB(255, 215, 0); // 금색
 		}
-		else // 상대방 차례
+		else // Player 2 차례 (두 번째 로그인 사용자)
 		{
-			// ★ Guest 대신 실제 ID 표시
-			strTurn.Format(_T(">>> %s (상대) >>>"), strP2ID);
-			clrText = RGB(100, 100, 255);
+			// ★★★ [수정] 게스트일 경우 "Player 2 (Guest)" 형식으로 표시 ★★★
+			if (strP2ID.IsEmpty())
+				strTurn = _T(">>> Player 2 (Guest) 의 턴 >>>");
+			else
+				strTurn.Format(_T(">>> %s 님의 턴 (Player 2) >>>"), strP2ID);
+			clrText = RGB(100, 200, 255); // 하늘색
 		}
 	}
 
@@ -1056,6 +1082,51 @@ void CMy1126View::OnDraw(CDC *pDC)
 	DrawGame();
 }
 
+// 주사위 리소스를 임시 파일로 저장하는 함수
+CString SaveResourceToTempFile(UINT nResourceID, CString strResourceType = _T("WAVE"))
+{
+	// 1. 리소스 찾기 및 로드 (메모리 포인터 확보)
+	HRSRC hRes = FindResource(AfxGetInstanceHandle(), MAKEINTRESOURCE(nResourceID), strResourceType);
+	if (hRes == NULL) return _T("");
+
+	HGLOBAL hMem = LoadResource(AfxGetInstanceHandle(), hRes);
+	if (hMem == NULL) return _T("");
+
+	DWORD dwSize = SizeofResource(AfxGetInstanceHandle(), hRes); // 리소스 크기
+	LPVOID pData = LockResource(hMem);         // 리소스 데이터 포인터
+
+	// 2. 임시 파일 경로 생성
+	TCHAR szTempPath[MAX_PATH];
+	TCHAR szTempFileName[MAX_PATH];
+
+	GetTempPath(MAX_PATH, szTempPath);
+
+	GetTempFileName(szTempPath, _T("SND"), 0, szTempFileName);
+
+	// 3. 파일로 저장 (MFC CFile 클래스 사용)
+	CString strFilePath = szTempFileName;
+	try
+	{
+		CFile file;
+		if (file.Open(strFilePath, CFile::modeCreate | CFile::modeWrite))
+		{
+			file.Write(pData, dwSize);
+			file.Close();
+		}
+		else
+		{
+			return _T("");
+		}
+	}
+	catch (CFileException* e)
+	{
+		e->Delete();
+		return _T("");
+	}
+
+	return strFilePath;
+}
+
 void CMy1126View::OnBnClickedButton3()
 {
 	// 1. 애니메이션 중이면 무시
@@ -1081,8 +1152,35 @@ void CMy1126View::OnBnClickedButton3()
 	m_nAniFrame = 90; // 애니메이션 시간 늘림 (30 -> 90)
 
 	// ★★★ [추가] 주사위 굴리기 사운드 재생 ★★★
-	// 방법 1: 외부 WAV 파일 사용 (dice_roll.wav 파일이 실행 파일과 같은 폴더에 있어야 함)
-	PlaySound(_T("Rolling_dice.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+	// WAV 파일 시도, 실패하면 Windows 시스템 사운드 사용
+	CString strFilePath = SaveResourceToTempFile(IDR_WAVE1, _T("WAVE"));
+
+	if (strFilePath.IsEmpty())
+	{
+		AfxMessageBox(_T("리소스를 파일로 저장하는데 실패했습니다."));
+		return;
+	}
+
+	// B. mciSendString을 위한 명령어 만들기
+	// 파일 경로에 공백이 있을 수 있으므로 반드시 큰따옴표(\")로 감싸야 함
+	CString strOpenCmd;
+	strOpenCmd.Format(_T("open \"%s\" alias MySound type waveaudio"), strFilePath);
+
+	// C. 기존에 열린게 있다면 닫고 새로 열기
+	mciSendString(_T("close MySound"), NULL, 0, NULL);
+
+	// D. 파일 열기
+	MCIERROR err = mciSendString(strOpenCmd, NULL, 0, NULL);
+	if (err != 0)
+	{
+		AfxMessageBox(_T("MCI 파일 열기 실패! (포맷 문제일 수 있음)"));
+		return;
+	}
+
+	// E. 재생 (wait를 빼면 비동기로 재생됨)
+	mciSendString(_T("play MySound"), NULL, 0, NULL);
+
+
 
 	// 3. 굴리기 횟수 증가 및 UI 업데이트
 	m_nRollCount++;
@@ -1451,10 +1549,28 @@ void CMy1126View::OnClickList2(NMHDR *pNMHDR, LRESULT *pResult)
 		{
 			m_nCurrentPlayer = 1 - m_nCurrentPlayer;
 
+			// ★★★ [수정] 플레이어 이름을 표시하여 더 명확하게 ★★★
+			CMy1126App *pApp = (CMy1126App *)AfxGetApp();
+			CString strMsg;
+
 			if (m_nCurrentPlayer == 0)
-				AfxMessageBox(_T("당신(나)의 차례입니다! 🎲"));
+			{
+				// Player 1의 턴
+				if (pApp->m_strCurrentUserID.IsEmpty())
+					strMsg = _T("Player 1 (Guest) 의 차례입니다! 🎲");
+				else
+					strMsg.Format(_T("%s 님의 차례입니다! 🎲"), pApp->m_strCurrentUserID);
+			}
 			else
-				AfxMessageBox(_T("상대방의 차례입니다! 🎲"));
+			{
+				// Player 2의 턴
+				if (pApp->m_strPlayer2ID.IsEmpty())
+					strMsg = _T("Player 2 (Guest) 의 차례입니다! 🎲");
+				else
+					strMsg.Format(_T("%s 님의 차례입니다! 🎲"), pApp->m_strPlayer2ID);
+			}
+
+			AfxMessageBox(strMsg);
 		}
 
 		// 1인용이면 m_nCurrentPlayer는 계속 0으로 유지됨 -> 내 점수판에만 계속 기록

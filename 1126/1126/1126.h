@@ -9,7 +9,7 @@
 
 #include "resource.h" // 주 기호입니다.
 #include <afxdb.h>
-
+#include<Windows.h>
 // CMy1126App:
 // 이 클래스의 구현에 대해서는 1126.cpp을(를) 참조하세요.
 //

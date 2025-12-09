@@ -13,6 +13,7 @@
 #define IDD_INTRO                       353
 #define IDD_DIALOG_P2_LOGIN             354
 #define IDD_DIALOG_RANK                 355
+#define IDR_WAVE1                       357
 #define IDC_LIST2                       1004
 #define IDC_BUTTON3                     1005
 #define IDC_BUTTON4                     1006
@@ -33,7 +34,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        357
+#define _APS_NEXT_RESOURCE_VALUE        358
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           310
