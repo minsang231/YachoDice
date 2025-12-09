@@ -1087,13 +1087,15 @@ CString SaveResourceToTempFile(UINT nResourceID, CString strResourceType = _T("W
 {
 	// 1. 리소스 찾기 및 로드 (메모리 포인터 확보)
 	HRSRC hRes = FindResource(AfxGetInstanceHandle(), MAKEINTRESOURCE(nResourceID), strResourceType);
-	if (hRes == NULL) return _T("");
+	if (hRes == NULL)
+		return _T("");
 
 	HGLOBAL hMem = LoadResource(AfxGetInstanceHandle(), hRes);
-	if (hMem == NULL) return _T("");
+	if (hMem == NULL)
+		return _T("");
 
 	DWORD dwSize = SizeofResource(AfxGetInstanceHandle(), hRes); // 리소스 크기
-	LPVOID pData = LockResource(hMem);         // 리소스 데이터 포인터
+	LPVOID pData = LockResource(hMem);							 // 리소스 데이터 포인터
 
 	// 2. 임시 파일 경로 생성
 	TCHAR szTempPath[MAX_PATH];
@@ -1118,7 +1120,7 @@ CString SaveResourceToTempFile(UINT nResourceID, CString strResourceType = _T("W
 			return _T("");
 		}
 	}
-	catch (CFileException* e)
+	catch (CFileException *e)
 	{
 		e->Delete();
 		return _T("");
@@ -1179,8 +1181,6 @@ void CMy1126View::OnBnClickedButton3()
 
 	// E. 재생 (wait를 빼면 비동기로 재생됨)
 	mciSendString(_T("play MySound"), NULL, 0, NULL);
-
-
 
 	// 3. 굴리기 횟수 증가 및 UI 업데이트
 	m_nRollCount++;
